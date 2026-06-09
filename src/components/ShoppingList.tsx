@@ -22,6 +22,15 @@ type Props = {
   initialItems: Item[];
 };
 
+// crypto.randomUUID() only exists in secure contexts (https / localhost), so
+// it's undefined when testing over http on a LAN IP. Fall back to a simple id.
+function makeId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 export default function ShoppingList({
   listId,
   listName,
@@ -93,7 +102,7 @@ export default function ShoppingList({
     setDraft("");
     inputRef.current?.focus();
 
-    const tempId = `temp-${crypto.randomUUID()}`;
+    const tempId = `temp-${makeId()}`;
     const optimistic: Item = {
       id: tempId,
       name,
