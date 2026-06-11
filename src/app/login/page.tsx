@@ -7,11 +7,12 @@ import { createClient } from "@/lib/supabase/client";
 function LoginForm() {
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/";
+  const callbackError = searchParams.get("error");
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
     "idle"
   );
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(callbackError);
 
   async function sendMagicLink(e: React.FormEvent) {
     e.preventDefault();
@@ -32,6 +33,18 @@ function LoginForm() {
     } else {
       setStatus("sent");
     }
+  }
+
+  async function signInWithGoogle() {
+    setError(null);
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      },
+    });
+    if (error) setError(error.message);
   }
 
   if (status === "sent") {
@@ -71,6 +84,18 @@ function LoginForm() {
       <p className="text-center text-xs text-neutral-400">
         No password — we email you a sign-in link.
       </p>
+      <div className="flex items-center gap-3 py-1">
+        <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
+        <span className="text-xs text-neutral-400">or</span>
+        <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
+      </div>
+      <button
+        type="button"
+        onClick={signInWithGoogle}
+        className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-base font-semibold active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
+      >
+        Continue with Google
+      </button>
     </form>
   );
 }

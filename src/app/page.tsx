@@ -18,7 +18,11 @@ async function fetchAisleStats(
   return data ?? [];
 }
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ list?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -69,14 +73,16 @@ export default async function Home() {
     );
   }
 
-  const { data: lists } = await supabase
+  const { data } = await supabase
     .from("lists")
     .select("id, name")
     .eq("household_id", household.id)
-    .order("created_at", { ascending: true })
-    .limit(1);
+    .order("created_at", { ascending: true });
 
-  const list = lists?.[0];
+  const lists = data ?? [];
+  // Fall back to the first list when the ?list= param is missing or stale.
+  const { list: requestedId } = await searchParams;
+  const list = lists.find((l) => l.id === requestedId) ?? lists[0];
   if (!list) {
     return (
       <main className="flex min-h-dvh items-center justify-center px-6">
@@ -98,8 +104,10 @@ export default async function Home() {
 
   return (
     <ShoppingList
+      key={list.id}
       listId={list.id}
       listName={list.name}
+      lists={lists}
       householdId={household.id}
       householdName={household.name}
       inviteCode={household.invite_code}
