@@ -3,8 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createHousehold } from "./actions";
 import ShoppingList from "@/components/ShoppingList";
 
-// Learned aisle positions; ignore stats from over ~6 months ago so the
-// sort adapts after a move or store remodel.
+
 async function fetchAisleStats(
   supabase: Awaited<ReturnType<typeof createClient>>,
   householdId: string
