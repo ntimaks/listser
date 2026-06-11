@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { signOut } from "@/app/actions";
+import ListSwitcher from "@/components/ListSwitcher";
 
 type Item = {
   id: string;
@@ -16,6 +17,8 @@ type Item = {
 type Props = {
   listId: string;
   listName: string;
+  lists: { id: string; name: string }[];
+  householdId: string;
   householdName: string;
   inviteCode: string;
   userId: string;
@@ -34,6 +37,8 @@ function makeId() {
 export default function ShoppingList({
   listId,
   listName,
+  lists,
+  householdId,
   householdName,
   inviteCode,
   userId,
@@ -188,7 +193,12 @@ export default function ShoppingList({
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pb-24">
       <header className="flex items-center justify-between py-4">
         <div>
-          <h1 className="text-xl font-bold leading-tight">{listName}</h1>
+          <ListSwitcher
+            lists={lists}
+            activeListId={listId}
+            activeListName={listName}
+            householdId={householdId}
+          />
           <p className="text-xs text-neutral-400">{householdName}</p>
         </div>
         <div className="flex items-center gap-2">
