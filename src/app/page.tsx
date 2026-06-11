@@ -3,6 +3,21 @@ import { createClient } from "@/lib/supabase/server";
 import { createHousehold } from "./actions";
 import ShoppingList from "@/components/ShoppingList";
 
+// Learned aisle positions; ignore stats from over ~6 months ago so the
+// sort adapts after a move or store remodel.
+async function fetchAisleStats(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  householdId: string
+) {
+  const staleCutoff = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
+  const { data } = await supabase
+    .from("item_stats")
+    .select("name_key, position_score, trip_count")
+    .eq("household_id", householdId)
+    .gte("last_seen_at", staleCutoff.toISOString());
+  return data ?? [];
+}
+
 export default async function Home({
   searchParams,
 }: {
@@ -85,6 +100,8 @@ export default async function Home({
     .eq("list_id", list.id)
     .order("created_at", { ascending: true });
 
+  const stats = await fetchAisleStats(supabase, household.id);
+
   return (
     <ShoppingList
       key={list.id}
@@ -96,6 +113,7 @@ export default async function Home({
       inviteCode={household.invite_code}
       userId={user.id}
       initialItems={items ?? []}
+      initialStats={stats}
     />
   );
 }

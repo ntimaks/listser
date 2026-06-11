@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { signOut } from "@/app/actions";
 import ListSwitcher from "@/components/ListSwitcher";
+import { groupForStore, type ItemStat } from "@/lib/categories";
 
 type Item = {
   id: string;
@@ -23,6 +24,7 @@ type Props = {
   inviteCode: string;
   userId: string;
   initialItems: Item[];
+  initialStats: ItemStat[];
 };
 
 // crypto.randomUUID() only exists in secure contexts (https / localhost), so
@@ -43,9 +45,11 @@ export default function ShoppingList({
   inviteCode,
   userId,
   initialItems,
+  initialStats,
 }: Props) {
   const supabase = useMemo(() => createClient(), []);
   const [items, setItems] = useState<Item[]>(initialItems);
+  const [stats, setStats] = useState<ItemStat[]>(initialStats);
   const [draft, setDraft] = useState("");
   const [invited, setInvited] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -155,7 +159,9 @@ export default function ShoppingList({
     if (error) setItems(before);
   }
 
-  async function clearChecked() {
+  // Committing a trip: record_trip folds the checkoff order into the
+  // household's aisle stats, then deletes the checked items server-side.
+  async function finishTrip() {
     const checkedIds = items
       .filter((i) => i.checked_at && !i.id.startsWith("temp-"))
       .map((i) => i.id);
@@ -163,11 +169,19 @@ export default function ShoppingList({
     const before = items;
     setItems((prev) => prev.filter((i) => !checkedIds.includes(i.id)));
 
-    const { error } = await supabase
-      .from("list_items")
-      .delete()
-      .in("id", checkedIds);
-    if (error) setItems(before);
+    const { error } = await supabase.rpc("record_trip", {
+      p_list_id: listId,
+    });
+    if (error) {
+      setItems(before);
+      return;
+    }
+
+    const { data } = await supabase
+      .from("item_stats")
+      .select("name_key, position_score, trip_count")
+      .eq("household_id", householdId);
+    if (data) setStats(data as ItemStat[]);
   }
 
   async function shareInvite() {
@@ -186,8 +200,22 @@ export default function ShoppingList({
     setTimeout(() => setInvited(false), 2000);
   }
 
-  const unchecked = items.filter((i) => !i.checked_at);
+  const unchecked = useMemo(
+    () => items.filter((i) => !i.checked_at),
+    [items]
+  );
   const checked = items.filter((i) => i.checked_at);
+
+  // Aisle order: grouped by category, sorted by the household's learned
+  // checkoff positions (canonical store-walk order until trips exist).
+  const statsMap = useMemo(
+    () => new Map(stats.map((s) => [s.name_key, s])),
+    [stats]
+  );
+  const groups = useMemo(
+    () => groupForStore(unchecked, statsMap),
+    [unchecked, statsMap]
+  );
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pb-24">
@@ -244,16 +272,25 @@ export default function ShoppingList({
         </div>
       </form>
 
-      <ul className="flex flex-col gap-1">
-        {unchecked.length === 0 && checked.length === 0 && (
-          <li className="py-12 text-center text-sm text-neutral-400">
-            Nothing here yet. Add the first thing you’ll forget otherwise.
-          </li>
-        )}
-        {unchecked.map((item) => (
-          <ItemRow key={item.id} item={item} onToggle={toggleItem} />
-        ))}
-      </ul>
+      {unchecked.length === 0 && checked.length === 0 && (
+        <p className="py-12 text-center text-sm text-neutral-400">
+          Nothing here yet. Add the first thing you’ll forget otherwise.
+        </p>
+      )}
+      {groups.map((group) => (
+        <section key={group.category}>
+          {groups.length > 1 && (
+            <h2 className="px-1 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+              {group.label}
+            </h2>
+          )}
+          <ul className="flex flex-col gap-1">
+            {group.items.map((item) => (
+              <ItemRow key={item.id} item={item} onToggle={toggleItem} />
+            ))}
+          </ul>
+        </section>
+      ))}
 
       {checked.length > 0 && (
         <section className="mt-6">
@@ -262,10 +299,10 @@ export default function ShoppingList({
               In the cart ({checked.length})
             </h2>
             <button
-              onClick={clearChecked}
-              className="text-xs font-medium text-neutral-400 underline-offset-2 active:underline"
+              onClick={finishTrip}
+              className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white active:bg-emerald-700"
             >
-              Clear
+              Done ✓
             </button>
           </div>
           <ul className="mt-1 flex flex-col gap-1">

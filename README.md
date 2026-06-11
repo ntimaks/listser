@@ -12,11 +12,11 @@ realtime between phones.
 ### 1. Create a Supabase project
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. Open the **SQL Editor** and run the contents of
-   [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql).
-   This creates the tables, row-level-security policies, the
-   `create_household` / `join_household` RPCs, and enables realtime on
-   `list_items`.
+2. Open the **SQL Editor** and run the files in
+   [`supabase/migrations/`](supabase/migrations/) in order
+   (`0001_init.sql`, then `0002_aisle_order.sql`). This creates the tables,
+   row-level-security policies, the `create_household` / `join_household` /
+   `record_trip` RPCs, and enables realtime on `list_items`.
 
 ### 2. Configure auth
 
@@ -51,6 +51,14 @@ them up and drops them straight into the shared list.
   optimistic (instant local state), then reconciled against Supabase
   realtime events, so the list feels instant and the other phone updates
   within a second.
+- **Aisle-order sorting** — the list groups itself by grocery category in a
+  canonical "store walk" order from day one (`src/lib/categories.ts`, a
+  merged English + Latvian stem dictionary — no language setting needed).
+  Tapping **Done** after a trip calls the `record_trip` RPC
+  (`0002_aisle_order.sql`), which folds the checkoff order into
+  per-household `item_stats`; learned positions gradually override the
+  built-in order, so after a few trips the list mirrors your actual store.
+  Zero configuration.
 
 ## Deploying
 
@@ -63,5 +71,4 @@ use **Add to Home Screen** so it launches like a native app.
 - Multiple households / lists UI (schema already supports it)
 - Sets ("taco night" → many items)
 - Frequency-based suggestions ("you usually buy milk weekly")
-- Aisle-order sorting learned from checkoff order
 - Offline mutation queue (currently online-optimistic only)
