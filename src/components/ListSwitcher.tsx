@@ -30,12 +30,12 @@ export default function ListSwitcher({
       <button
         onClick={() => (open ? close() : setOpen(true))}
         aria-expanded={open}
-        className="flex items-center gap-1.5 rounded-lg py-0.5 text-xl font-bold leading-tight active:opacity-70"
+        className="t-h3 flex items-center gap-1.5 uppercase leading-tight tracking-tight active:opacity-70"
       >
         {activeListName}
         <span
           aria-hidden
-          className={`text-xs text-neutral-400 transition-transform ${
+          className={`text-xs text-[var(--fg-muted)] transition-transform ${
             open ? "rotate-180" : ""
           }`}
         >
@@ -45,26 +45,31 @@ export default function ListSwitcher({
 
       {open && (
         <>
-          <div
-            className="fixed inset-0 z-20"
-            aria-hidden
-            onClick={close}
-          />
-          <div className="absolute left-0 top-full z-30 mt-2 w-64 rounded-xl border border-neutral-300 bg-background p-1.5 shadow-lg dark:border-neutral-700">
+          <div className="fixed inset-0 z-20" aria-hidden onClick={close} />
+          <div className="panel panel-stamp absolute left-0 top-full z-30 mt-2 w-64">
+            <div className="panel-head">
+              <span>[LISTS]</span>
+              <span>{String(lists.length).padStart(2, "0")}</span>
+            </div>
             <ul className="flex flex-col">
               {lists.map((list) => (
                 <li key={list.id}>
                   <Link
                     href={`/?list=${list.id}`}
                     onClick={close}
-                    className={`flex items-center justify-between rounded-lg px-3 py-2.5 text-base active:bg-neutral-100 dark:active:bg-neutral-800 ${
-                      list.id === activeListId ? "font-semibold" : ""
+                    className={`flex items-center justify-between border-b border-[var(--ink-5)] px-3 py-2.5 text-[var(--fg)] no-underline hover:bg-[var(--paper-2)] hover:text-[var(--fg)] active:bg-[var(--paper-2)] ${
+                      list.id === activeListId ? "font-bold" : ""
                     }`}
                   >
-                    {list.name}
+                    <span className="truncate uppercase tracking-wide">
+                      {list.name}
+                    </span>
                     {list.id === activeListId && (
-                      <span aria-hidden className="text-sm text-emerald-600">
-                        ✓
+                      <span
+                        aria-hidden
+                        className="text-sm text-[var(--cobalt)]"
+                      >
+                        ▸
                       </span>
                     )}
                   </Link>
@@ -72,31 +77,28 @@ export default function ListSwitcher({
               ))}
             </ul>
 
-            <div className="mt-1 border-t border-neutral-200 pt-1.5 dark:border-neutral-800">
+            <div className="p-1.5">
               {creating ? (
-                <form action={createList} className="flex gap-1.5 p-1">
+                <form action={createList} className="flex gap-1.5">
                   <input type="hidden" name="household_id" value={householdId} />
                   <input
                     name="name"
                     required
                     autoFocus
                     maxLength={80}
-                    placeholder="List name"
-                    className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-neutral-700 dark:bg-neutral-900"
+                    placeholder="LIST NAME"
+                    className="field min-w-0 flex-1 !text-sm"
                   />
-                  <button
-                    type="submit"
-                    className="rounded-lg bg-emerald-600 px-3 text-sm font-semibold text-white active:bg-emerald-700"
-                  >
-                    Add
+                  <button type="submit" className="btn btn-sm btn-acid shrink-0">
+                    ADD
                   </button>
                 </form>
               ) : (
                 <button
                   onClick={() => setCreating(true)}
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-base text-neutral-500 active:bg-neutral-100 dark:active:bg-neutral-800"
+                  className="t-meta flex w-full items-center gap-2 px-2 py-2 text-[var(--fg-2)] active:bg-[var(--paper-2)]"
                 >
-                  <span aria-hidden>＋</span> New list
+                  [+ NEW LIST]
                 </button>
               )}
             </div>

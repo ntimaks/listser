@@ -1,28 +1,250 @@
 @import "tailwindcss";
 
+/* =========================================================
+   NIKOLASS — Design System Tokens
+   Colors, type, spacing, motion. Mono-first, paper-and-ink,
+   one acid-lime accent. Square corners, hard 1px ink borders.
+   ========================================================= */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ---------- PAPER / SURFACES — true neutral ---------- */
+  --paper-0: #eeeeee; /* deepest paper, body bg */
+  --paper-1: #e4e4e3; /* card / panel */
+  --paper-2: #d8d8d6; /* recessed panel */
+  --paper-3: #c2c2c0; /* border / divider on paper */
+
+  /* ---------- INK — true neutral grays ---------- */
+  --ink-0: #0c0c0c; /* primary ink */
+  --ink-1: #1c1c1b;
+  --ink-2: #303030;
+  --ink-3: #5a5a58; /* secondary text */
+  --ink-4: #8a8a88; /* tertiary / metadata */
+  --ink-5: #b4b4b2; /* hairline / disabled */
+
+  /* ---------- ACCENTS — 4 hues, pulled from the poster series ---------- */
+  --lime: #d4e635; /* primary — when in doubt, use this */
+  --lime-deep: #b8c920; /* hover/press */
+  --cobalt: #1f47e6; /* links / data */
+  --cobalt-deep: #1632a8;
+  --vermillion: #ff4fa8; /* featured / hero */
+  --vermillion-deep: #d62e85;
+  --kelly: #3db94a; /* supporting / tags */
+  --kelly-deep: #2a8a35;
+
+  /* legacy alias — keep --acid pointing at lime */
+  --acid: var(--lime);
+  --acid-deep: var(--lime-deep);
+
+  /* ---------- TERMINAL — mono strips, code, status ---------- */
+  --term-bg: #0a0e0a;
+  --term-fg: #c8ff1f;
+  --term-dim: #6f8a30;
+  --term-red: #ff5d4a; /* errors, destructive */
+  --term-amber: #e8b23a; /* warnings */
+  --term-blue: #5a8fe8;
+
+  /* ---------- DARK MODE PAPER — deep neutral charcoal ---------- */
+  --dark-0: #121212;
+  --dark-1: #1a1a1a;
+  --dark-2: #232323;
+  --dark-3: #303030;
+  --dark-fg-0: #eeeeee;
+  --dark-fg-1: #cacac8;
+  --dark-fg-2: #909090;
+  --dark-fg-3: #5c5c5a;
+
+  /* ---------- SEMANTIC ---------- */
+  --bg: var(--paper-0);
+  --bg-panel: var(--paper-1);
+  --bg-recessed: var(--paper-2);
+  --bg-inverse: var(--ink-0);
+  --fg: var(--ink-0);
+  --fg-1: var(--ink-2);
+  --fg-2: var(--ink-3);
+  --fg-muted: var(--ink-4);
+  --fg-disabled: var(--ink-5);
+  --fg-on-dark: var(--paper-0);
+  --border: var(--ink-0); /* hard black 1px borders */
+  --border-soft: var(--paper-3);
+  --border-hair: var(--ink-5);
+  --accent: var(--acid);
+  --accent-hover: var(--acid-deep);
+  --link: var(--ink-0);
+  --link-visited: var(--ink-3);
+  --danger: var(--term-red);
+  --warning: var(--term-amber);
+  --success: var(--acid-deep);
+
+  /* ---------- TYPE FAMILIES (wired to next/font variables) ---------- */
+  --ff-mono: var(--font-mono), "JetBrains Mono", ui-monospace, "Courier New",
+    monospace;
+  --ff-display: var(--font-display), "Helvetica Neue Condensed", "Arial Narrow",
+    sans-serif;
+  --ff-pixel: var(--font-pixel), "VT323", var(--font-mono), monospace;
+  --ff-serif: var(--font-serif), "DM Serif Display", "Times New Roman", serif;
+
+  /* ---------- SIZE SCALE ---------- */
+  --fs-3xs: 9px;
+  --fs-2xs: 10px;
+  --fs-xs: 11px;
+  --fs-sm: 13px;
+  --fs-md: 15px; /* body */
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+  --fs-2xl: 28px;
+  --fs-3xl: 40px;
+  --fs-4xl: 64px;
+  --fs-5xl: 96px;
+  --fs-display: 144px;
+
+  /* ---------- WEIGHT / LINE HEIGHT / TRACKING ---------- */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-bold: 700;
+  --lh-tight: 1.05;
+  --lh-snug: 1.2;
+  --lh-base: 1.45;
+  --lh-loose: 1.7;
+  --tr-tight: -0.02em;
+  --tr-normal: 0;
+  --tr-wide: 0.05em;
+  --tr-wider: 0.12em;
+  --tr-widest: 0.2em;
+
+  /* ---------- SPACING — 4px baseline grid ---------- */
+  --s-0: 0;
+  --s-px: 1px;
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+  --s-16: 64px;
+  --s-20: 80px;
+  --s-24: 96px;
+
+  /* ---------- RADII — basically zero ---------- */
+  --r-0: 0;
+  --r-1: 1px;
+  --r-2: 2px; /* tags, chips */
+  --r-pill: 9999px; /* status dots only */
+
+  /* ---------- BORDERS ---------- */
+  --bw-hair: 0.5px;
+  --bw-1: 1px;
+  --bw-2: 2px;
+  --bw-3: 3px;
+
+  /* ---------- SHADOWS — stamp offsets only, no blur ---------- */
+  --sh-none: none;
+  --sh-stamp: 3px 3px 0 0 var(--ink-0);
+  --sh-stamp-lg: 6px 6px 0 0 var(--ink-0);
+  --sh-stamp-acid: 3px 3px 0 0 var(--acid);
+  --sh-inner-press: inset 2px 2px 0 0 rgba(0, 0, 0, 0.18);
+
+  /* ---------- MOTION — fast, snappy ---------- */
+  --dur-instant: 60ms;
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 320ms;
+  --ease-linear: linear;
+  --ease-step: steps(6, end);
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* ---------- LAYOUT ---------- */
+  --container: 1280px;
+  --gutter: 24px;
+  --rule: 1px solid var(--ink-0);
+  --rule-soft: 1px solid var(--paper-3);
+  --rule-dotted: 1px dotted var(--ink-3);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* =========================================================
+   DARK MODE — opt-in [data-theme="dark"] + auto via media query
+   ========================================================= */
+[data-theme="dark"] {
+  --paper-0: var(--dark-0);
+  --paper-1: var(--dark-1);
+  --paper-2: var(--dark-2);
+  --paper-3: var(--dark-3);
+  --ink-0: var(--dark-fg-0);
+  --ink-1: var(--dark-fg-1);
+  --ink-2: var(--dark-fg-1);
+  --ink-3: var(--dark-fg-2);
+  --ink-4: var(--dark-fg-3);
+  --ink-5: #3a4148;
+  --border: var(--dark-fg-0);
+  --border-soft: var(--dark-3);
+  --bg-inverse: var(--dark-fg-0);
+  --fg-on-dark: var(--dark-0);
+  --sh-stamp: 3px 3px 0 0 var(--dark-fg-0);
+  --sh-stamp-lg: 6px 6px 0 0 var(--dark-fg-0);
 }
-
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    --paper-0: var(--dark-0);
+    --paper-1: var(--dark-1);
+    --paper-2: var(--dark-2);
+    --paper-3: var(--dark-3);
+    --ink-0: var(--dark-fg-0);
+    --ink-1: var(--dark-fg-1);
+    --ink-2: var(--dark-fg-1);
+    --ink-3: var(--dark-fg-2);
+    --ink-4: var(--dark-fg-3);
+    --ink-5: #3a4148;
+    --border: var(--dark-fg-0);
+    --border-soft: var(--dark-3);
+    --bg-inverse: var(--dark-fg-0);
+    --fg-on-dark: var(--dark-0);
+    --sh-stamp: 3px 3px 0 0 var(--dark-fg-0);
+    --sh-stamp-lg: 6px 6px 0 0 var(--dark-fg-0);
   }
 }
 
+/* =========================================================
+   Expose core tokens to Tailwind utilities (bg-paper-1, text-ink-3, …)
+   ========================================================= */
+@theme inline {
+  --color-paper-0: var(--paper-0);
+  --color-paper-1: var(--paper-1);
+  --color-paper-2: var(--paper-2);
+  --color-paper-3: var(--paper-3);
+  --color-ink-0: var(--ink-0);
+  --color-ink-1: var(--ink-1);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-ink-5: var(--ink-5);
+  --color-lime: var(--lime);
+  --color-cobalt: var(--cobalt);
+  --color-vermillion: var(--vermillion);
+  --color-term-red: var(--term-red);
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --font-mono: var(--ff-mono);
+  --font-display: var(--ff-display);
+  --font-pixel: var(--ff-pixel);
+  --font-serif: var(--ff-serif);
+}
+
+/* =========================================================
+   BASE ELEMENTS
+   ========================================================= */
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-md);
+  line-height: var(--lh-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
   /* Checking items off shouldn't select text on long-press. */
   -webkit-user-select: none;
   user-select: none;
@@ -32,4 +254,257 @@ input,
 textarea {
   -webkit-user-select: text;
   user-select: text;
+}
+
+/* =========================================================
+   TYPE CLASSES
+   ========================================================= */
+.t-display {
+  font-family: var(--ff-display);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-display);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tr-tight);
+  text-transform: uppercase;
+}
+.t-h1 {
+  font-family: var(--ff-display);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-4xl);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tr-tight);
+  text-transform: uppercase;
+}
+.t-h2 {
+  font-family: var(--ff-display);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tr-tight);
+  text-transform: uppercase;
+}
+.t-h3 {
+  font-family: var(--ff-mono);
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-lg);
+  line-height: var(--lh-snug);
+}
+.t-body {
+  font-family: var(--ff-mono);
+  font-weight: var(--fw-regular);
+  font-size: var(--fs-md);
+  line-height: var(--lh-base);
+}
+.t-small {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-base);
+}
+/* META — tiny uppercase typewriter labels e.g. "DATE", "HOUSEHOLD" */
+.t-meta {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-2xs);
+  line-height: 1.4;
+  letter-spacing: var(--tr-widest);
+  text-transform: uppercase;
+  color: var(--fg-2);
+}
+/* STAMP — for [BRACKETED] codes like [TX03] */
+.t-stamp {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
+  border: var(--bw-1) solid currentColor;
+  padding: 2px 6px;
+  display: inline-block;
+}
+.t-pixel {
+  font-family: var(--ff-pixel);
+  font-size: 22px;
+  line-height: 1;
+}
+.t-serif {
+  font-family: var(--ff-serif);
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-snug);
+  font-style: italic;
+}
+
+hr,
+.t-rule {
+  border: 0;
+  border-top: var(--rule);
+  margin: var(--s-4) 0;
+}
+
+/* =========================================================
+   COMPONENT CLASSES
+   ========================================================= */
+
+/* ---------- BUTTONS ---------- */
+.btn {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--tr-wider);
+  text-transform: uppercase;
+  padding: 10px 16px;
+  border: var(--bw-1) solid var(--ink-0);
+  background: transparent;
+  color: var(--ink-0);
+  border-radius: 0;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-linear),
+    color var(--dur-fast) var(--ease-linear),
+    transform var(--dur-fast) var(--ease-linear),
+    box-shadow var(--dur-fast) var(--ease-linear);
+}
+.btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: var(--sh-inner-press);
+}
+.btn:disabled {
+  color: var(--ink-5);
+  border-color: var(--ink-5);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.btn-primary {
+  background: var(--ink-0);
+  color: var(--paper-0);
+}
+.btn-primary:not(:disabled):hover {
+  background: var(--ink-2);
+}
+.btn-acid {
+  background: var(--acid);
+  border-color: var(--ink-0);
+  color: #0c0c0c;
+  font-weight: var(--fw-bold);
+}
+.btn-acid:not(:disabled):hover {
+  background: var(--acid-deep);
+}
+.btn-cobalt {
+  border-color: var(--cobalt);
+  color: var(--cobalt);
+}
+.btn-ghost {
+  border: var(--bw-1) dashed var(--ink-3);
+  color: var(--ink-3);
+}
+.btn-ghost:active {
+  box-shadow: none;
+}
+.btn-sm {
+  padding: 6px 10px;
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tr-wide);
+}
+
+/* ---------- FIELDS ---------- */
+.field {
+  font-family: var(--ff-mono);
+  font-size: 16px; /* >=16px keeps iOS from zooming on focus */
+  padding: 11px 12px;
+  border: var(--bw-1) solid var(--ink-0);
+  background: var(--paper-0);
+  color: var(--ink-0);
+  border-radius: 0;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+.field::placeholder {
+  color: var(--ink-4);
+}
+.field:focus {
+  background: var(--paper-1);
+  box-shadow: 0 0 0 3px var(--acid);
+}
+.field-error {
+  border-color: var(--term-red);
+}
+
+/* ---------- PANELS ---------- */
+.panel {
+  border: var(--bw-1) solid var(--ink-0);
+  background: var(--paper-1);
+  border-radius: 0;
+}
+.panel-stamp {
+  box-shadow: var(--sh-stamp);
+}
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--paper-2);
+  border-bottom: var(--bw-1) solid var(--ink-0);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-3xs);
+  letter-spacing: var(--tr-widest);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* ---------- ITEM ROWS (hairline-divided list) ---------- */
+.item-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-bottom: var(--bw-1) solid var(--ink-5);
+  border-radius: 0;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-linear);
+}
+.item-row:active {
+  background: var(--paper-2);
+}
+.item-row.is-pending {
+  opacity: 0.55;
+}
+
+/* Square checkbox glyph — ☐ → ☑/█ acid when checked */
+.checkbox {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  border: var(--bw-1) solid var(--ink-3);
+  background: transparent;
+  color: var(--ink-3);
+}
+.checkbox.is-checked {
+  border-color: var(--ink-0);
+  background: var(--acid);
+  color: var(--ink-0);
+}
+
+/* =========================================================
+   LINKS — ink underline → acid fill on hover
+   ========================================================= */
+a,
+.t-link {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+a:hover,
+.t-link:hover {
+  background: var(--acid);
+  color: var(--ink-0);
+  text-decoration: none;
 }

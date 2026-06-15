@@ -36,6 +36,15 @@ function makeId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+// ISO-ish datestamp, logbook style: 26.06.15
+function stamp(iso: string) {
+  const d = new Date(iso);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${String(d.getFullYear()).slice(2)}.${p(d.getMonth() + 1)}.${p(
+    d.getDate()
+  )}`;
+}
+
 export default function ShoppingList({
   listId,
   listName,
@@ -217,39 +226,51 @@ export default function ShoppingList({
     [unchecked, statsMap]
   );
 
+  const today = stamp(new Date().toISOString());
+  const total = unchecked.length + checked.length;
+
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pb-24">
-      <header className="flex items-center justify-between py-4">
-        <div>
-          <ListSwitcher
-            lists={lists}
-            activeListId={listId}
-            activeListName={listName}
-            householdId={householdId}
-          />
-          <p className="text-xs text-neutral-400">{householdName}</p>
+      {/* Logbook header band */}
+      <header className="panel mt-3">
+        <div className="panel-head">
+          <span>LISTSER // SHOPPING LOG</span>
+          <span>
+            {today} · {total} {total === 1 ? "ITEM" : "ITEMS"}
+          </span>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={shareInvite}
-            className="rounded-full border border-neutral-300 px-3 py-1.5 text-sm font-medium active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
-          >
-            {invited ? "Copied!" : "Invite"}
-          </button>
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="rounded-full px-2 py-1.5 text-sm text-neutral-400 active:text-neutral-600"
-              aria-label="Sign out"
-            >
-              ↩
+        <div className="flex items-start justify-between gap-2 px-3 py-2.5">
+          <div className="min-w-0">
+            <ListSwitcher
+              lists={lists}
+              activeListId={listId}
+              activeListName={listName}
+              householdId={householdId}
+            />
+            <p className="t-meta mt-1 truncate">▸ {householdName}</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <button onClick={shareInvite} className="btn btn-sm">
+              {invited ? "[COPIED]" : "[INVITE]"}
             </button>
-          </form>
+            <form action={signOut}>
+              <button
+                type="submit"
+                className="btn btn-sm btn-ghost"
+                aria-label="Sign out"
+              >
+                EXIT
+              </button>
+            </form>
+          </div>
         </div>
       </header>
 
       {/* Capture first: the add box lives at the top, always one tap away. */}
-      <form onSubmit={addItem} className="sticky top-0 z-10 bg-background pb-3 pt-1">
+      <form
+        onSubmit={addItem}
+        className="sticky top-0 z-10 bg-[var(--bg)] pb-3 pt-3"
+      >
         <div className="flex gap-2">
           <input
             ref={inputRef}
@@ -259,32 +280,36 @@ export default function ShoppingList({
             enterKeyHint="done"
             autoComplete="off"
             autoCapitalize="sentences"
-            className="min-w-0 flex-1 rounded-xl border border-neutral-300 px-4 py-3 text-base outline-none focus:border-emerald-500 dark:border-neutral-700 dark:bg-neutral-900"
+            className="field min-w-0 flex-1"
           />
           <button
             type="submit"
             disabled={!draft.trim()}
-            className="rounded-xl bg-emerald-600 px-5 text-xl font-semibold text-white active:bg-emerald-700 disabled:opacity-40"
+            className="btn btn-acid shrink-0"
             aria-label="Add item"
           >
-            +
+            + ADD
           </button>
         </div>
       </form>
 
       {unchecked.length === 0 && checked.length === 0 && (
-        <p className="py-12 text-center text-sm text-neutral-400">
-          Nothing here yet. Add the first thing you’ll forget otherwise.
+        <p className="t-small py-12 text-center text-[var(--fg-muted)]">
+          {"// "}nothing logged yet — add the first thing you&rsquo;d forget
+          otherwise.
         </p>
       )}
-      {groups.map((group) => (
-        <section key={group.category}>
+      {groups.map((group, gi) => (
+        <section key={group.category} className="mt-4 first:mt-1">
           {groups.length > 1 && (
-            <h2 className="px-1 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">
-              {group.label}
+            <h2 className="t-meta flex items-center justify-between border-b border-[var(--ink-5)] px-1 pb-1.5">
+              <span>{group.label}</span>
+              <span className="text-[var(--fg-disabled)]">
+                [{String(gi + 1).padStart(2, "0")}]
+              </span>
             </h2>
           )}
-          <ul className="flex flex-col gap-1">
+          <ul className="flex flex-col">
             {group.items.map((item) => (
               <ItemRow key={item.id} item={item} onToggle={toggleItem} />
             ))}
@@ -293,19 +318,14 @@ export default function ShoppingList({
       ))}
 
       {checked.length > 0 && (
-        <section className="mt-6">
-          <div className="flex items-center justify-between px-1">
-            <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">
-              In the cart ({checked.length})
-            </h2>
-            <button
-              onClick={finishTrip}
-              className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white active:bg-emerald-700"
-            >
-              Done ✓
+        <section className="mt-8">
+          <div className="flex items-center justify-between border-b border-[var(--ink-5)] px-1 pb-1.5">
+            <h2 className="t-meta">[IN CART · {checked.length}]</h2>
+            <button onClick={finishTrip} className="btn btn-sm btn-primary">
+              [DONE]
             </button>
           </div>
-          <ul className="mt-1 flex flex-col gap-1">
+          <ul className="flex flex-col">
             {checked.map((item) => (
               <ItemRow key={item.id} item={item} onToggle={toggleItem} />
             ))}
@@ -329,26 +349,25 @@ function ItemRow({
     <li>
       <button
         onClick={() => onToggle(item)}
-        className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left active:bg-neutral-100 dark:active:bg-neutral-800 ${
-          pending ? "opacity-60" : ""
-        }`}
+        className={`item-row ${pending ? "is-pending" : ""}`}
       >
         <span
           aria-hidden
-          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-sm ${
-            checked
-              ? "border-emerald-600 bg-emerald-600 text-white"
-              : "border-neutral-300 dark:border-neutral-600"
-          }`}
+          className={`checkbox ${checked ? "is-checked" : ""}`}
         >
           {checked ? "✓" : ""}
         </span>
         <span
-          className={`text-base ${
-            checked ? "text-neutral-400 line-through" : ""
+          className={`t-body min-w-0 flex-1 truncate ${
+            checked
+              ? "text-[var(--fg-muted)] line-through"
+              : "text-[var(--fg)]"
           }`}
         >
           {item.name}
+        </span>
+        <span className="t-meta shrink-0 text-[var(--fg-disabled)]">
+          {stamp(item.created_at)}
         </span>
       </button>
     </li>

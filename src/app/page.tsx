@@ -42,30 +42,30 @@ export default async function Home({
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-8 px-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Listser</h1>
-          <p className="mt-2 text-sm text-neutral-500">
-            Create your household to get started. You’ll get an invite link to
-            share.
+          <h1 className="t-h1">LISTSER</h1>
+          <p className="t-meta mt-2">
+            {"// "}create a household to start. you&rsquo;ll get an invite link
+            to share.
           </p>
         </div>
         <form action={createHousehold} className="w-full max-w-sm space-y-3">
+          <label className="t-meta block">
+            Household <span className="text-[var(--fg-disabled)]">[REQ]</span>
+          </label>
           <input
             name="name"
             required
             autoFocus
             maxLength={80}
-            placeholder="Household name (e.g. Home)"
-            className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-base outline-none focus:border-emerald-500 dark:border-neutral-700 dark:bg-neutral-900"
+            placeholder="e.g. Home"
+            className="field"
           />
-          <button
-            type="submit"
-            className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-base font-semibold text-white active:bg-emerald-700"
-          >
-            Create household
+          <button type="submit" className="btn btn-primary w-full">
+            [CREATE HOUSEHOLD]
           </button>
         </form>
-        <p className="text-center text-xs text-neutral-400">
-          Got an invite link from someone? Just open it — you’ll join their
+        <p className="t-meta max-w-sm text-center">
+          {"// "}got an invite link? just open it — you&rsquo;ll join their
           household automatically.
         </p>
       </main>
@@ -85,9 +85,9 @@ export default async function Home({
   if (!list) {
     return (
       <main className="flex min-h-dvh items-center justify-center px-6">
-        <p className="text-sm text-neutral-500">
-          No list found for this household — re-run the setup SQL or create one
-          in Supabase.
+        <p className="t-small text-center text-[var(--fg-2)]">
+          {"// "}no list found for this household — re-run the setup SQL or
+          create one in Supabase.
         </p>
       </main>
     );

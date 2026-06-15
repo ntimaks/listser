@@ -49,12 +49,13 @@ function LoginForm() {
 
   if (status === "sent") {
     return (
-      <div className="text-center space-y-2">
-        <p className="text-2xl">📬</p>
-        <h2 className="text-lg font-semibold">Check your email</h2>
-        <p className="text-sm text-neutral-500">
-          We sent a sign-in link to <span className="font-medium">{email}</span>.
-          Open it on this device.
+      <div className="panel panel-stamp p-5 text-center">
+        <span className="t-stamp text-[var(--cobalt)]">[SENT]</span>
+        <h2 className="t-h3 mt-3 uppercase">Check your email</h2>
+        <p className="t-small mt-2 text-[var(--fg-2)]">
+          sign-in link sent to{" "}
+          <span className="text-[var(--fg)]">{email}</span> — open it on this
+          device.
         </p>
       </div>
     );
@@ -62,6 +63,9 @@ function LoginForm() {
 
   return (
     <form onSubmit={sendMagicLink} className="w-full space-y-3">
+      <label className="t-meta block">
+        Email <span className="text-[var(--fg-disabled)]">[REQ]</span>
+      </label>
       <input
         type="email"
         required
@@ -71,28 +75,30 @@ function LoginForm() {
         placeholder="you@example.com"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-base outline-none focus:border-emerald-500 dark:border-neutral-700 dark:bg-neutral-900"
+        className="field"
       />
       <button
         type="submit"
         disabled={status === "sending"}
-        className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-base font-semibold text-white active:bg-emerald-700 disabled:opacity-60"
+        className="btn btn-primary w-full"
       >
-        {status === "sending" ? "Sending…" : "Send magic link"}
+        {status === "sending" ? "SENDING…" : "[SEND LINK]"}
       </button>
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <p className="text-center text-xs text-neutral-400">
-        No password — we email you a sign-in link.
+      {error && (
+        <p className="t-small text-[var(--term-red)]">→ {error}</p>
+      )}
+      <p className="t-meta text-center">
+        {"// "}no password — we email you a sign-in link.
       </p>
       <div className="flex items-center gap-3 py-1">
-        <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
-        <span className="text-xs text-neutral-400">or</span>
-        <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
+        <span className="h-px flex-1 bg-[var(--ink-5)]" />
+        <span className="t-meta">{"//"}</span>
+        <span className="h-px flex-1 bg-[var(--ink-5)]" />
       </div>
       <button
         type="button"
         onClick={signInWithGoogle}
-        className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-base font-semibold active:bg-neutral-100 dark:border-neutral-700 dark:active:bg-neutral-800"
+        className="btn w-full"
       >
         Continue with Google
       </button>
@@ -104,10 +110,8 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-8 px-6">
       <div className="text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Listser</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          One shopping list. Never forget the milk again.
-        </p>
+        <h1 className="t-h1">LISTSER</h1>
+        <p className="t-meta mt-2">{"// one shared list. nothing forgotten."}</p>
       </div>
       <div className="w-full max-w-sm">
         <Suspense>

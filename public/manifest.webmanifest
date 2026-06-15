@@ -1,11 +1,11 @@
 {
   "name": "Listser",
   "short_name": "Listser",
-  "description": "One shared shopping list for your household.",
+  "description": "One shared list. Nothing forgotten.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#059669",
+  "background_color": "#EEEEEE",
+  "theme_color": "#0C0C0C",
   "icons": [
     {
       "src": "/icon.svg",

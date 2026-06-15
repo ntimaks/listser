@@ -13,12 +13,14 @@ export default async function JoinPage({
 
   if (error) {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center gap-3 px-6 text-center">
-        <p className="text-2xl">🤔</p>
-        <h1 className="text-lg font-semibold">That invite link didn’t work</h1>
-        <p className="text-sm text-neutral-500">
-          Ask for a fresh link, or check that you copied the whole URL.
-        </p>
+      <main className="flex min-h-dvh flex-col items-center justify-center px-6">
+        <div className="panel panel-stamp w-full max-w-sm p-5 text-center">
+          <span className="t-stamp text-[var(--term-red)]">[ERR]</span>
+          <h1 className="t-h3 mt-3 uppercase">Invite didn&rsquo;t resolve</h1>
+          <p className="t-small mt-2 text-[var(--fg-2)]">
+            {"// "}ask for a fresh link, or check you copied the whole URL.
+          </p>
+        </div>
       </main>
     );
   }
