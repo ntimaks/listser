@@ -3,17 +3,17 @@ import { createClient } from "@/lib/supabase/server";
 import { createHousehold } from "./actions";
 import ShoppingList from "@/components/ShoppingList";
 
-// Learned aisle positions; ignore stats from over ~6 months ago so the
-// sort adapts after a move or store remodel.
+// Learned aisle positions scoped to this list's store; ignore stats from
+// over ~6 months ago so the sort adapts after a move or store remodel.
 async function fetchAisleStats(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  householdId: string
+  listId: string
 ) {
   const staleCutoff = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
   const { data } = await supabase
     .from("item_stats")
     .select("name_key, position_score, trip_count")
-    .eq("household_id", householdId)
+    .eq("list_id", listId)
     .gte("last_seen_at", staleCutoff.toISOString());
   return data ?? [];
 }
@@ -75,11 +75,15 @@ export default async function Home({
 
   const { data } = await supabase
     .from("lists")
-    .select("id, name")
+    .select("id, name, store_name")
     .eq("household_id", household.id)
     .order("created_at", { ascending: true });
 
-  const lists = data ?? [];
+  const lists = (data ?? []) as {
+    id: string;
+    name: string;
+    store_name: string | null;
+  }[];
   // Fall back to the first list when the ?list= param is missing or stale.
   const { list: requestedId } = await searchParams;
   const list = lists.find((l) => l.id === requestedId) ?? lists[0];
@@ -100,13 +104,26 @@ export default async function Home({
     .eq("list_id", list.id)
     .order("created_at", { ascending: true });
 
-  const stats = await fetchAisleStats(supabase, household.id);
+  const stats = await fetchAisleStats(supabase, list.id);
+
+  const { data: templatesData } = await supabase
+    .from("templates")
+    .select("id, name, template_items(item_name, sort_order)")
+    .eq("household_id", household.id)
+    .order("created_at", { ascending: true });
+
+  const templates = (templatesData ?? []) as {
+    id: string;
+    name: string;
+    template_items: { item_name: string; sort_order: number }[];
+  }[];
 
   return (
     <ShoppingList
       key={list.id}
       listId={list.id}
       listName={list.name}
+      listStoreName={list.store_name ?? null}
       lists={lists}
       householdId={household.id}
       householdName={household.name}
@@ -114,6 +131,7 @@ export default async function Home({
       userId={user.id}
       initialItems={items ?? []}
       initialStats={stats}
+      initialTemplates={templates}
     />
   );
 }

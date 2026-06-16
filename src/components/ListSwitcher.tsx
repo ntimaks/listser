@@ -5,9 +5,10 @@ import Link from "next/link";
 import { createList } from "@/app/actions";
 
 type Props = {
-  lists: { id: string; name: string }[];
+  lists: { id: string; name: string; store_name: string | null }[];
   activeListId: string;
   activeListName: string;
+  activeListStoreName: string | null;
   householdId: string;
 };
 
@@ -15,6 +16,7 @@ export default function ListSwitcher({
   lists,
   activeListId,
   activeListName,
+  activeListStoreName,
   householdId,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -32,7 +34,14 @@ export default function ListSwitcher({
         aria-expanded={open}
         className="flex items-center gap-1.5 rounded-lg py-0.5 text-xl font-bold leading-tight active:opacity-70"
       >
-        {activeListName}
+        <span>
+          {activeListName}
+          {activeListStoreName && (
+            <span className="ml-1.5 text-sm font-normal text-neutral-400">
+              {activeListStoreName}
+            </span>
+          )}
+        </span>
         <span
           aria-hidden
           className={`text-xs text-neutral-400 transition-transform ${
@@ -61,7 +70,14 @@ export default function ListSwitcher({
                       list.id === activeListId ? "font-semibold" : ""
                     }`}
                   >
-                    {list.name}
+                    <span>
+                      {list.name}
+                      {list.store_name && (
+                        <span className="ml-1.5 text-sm font-normal text-neutral-400">
+                          {list.store_name}
+                        </span>
+                      )}
+                    </span>
                     {list.id === activeListId && (
                       <span aria-hidden className="text-sm text-emerald-600">
                         ✓
@@ -74,7 +90,7 @@ export default function ListSwitcher({
 
             <div className="mt-1 border-t border-neutral-200 pt-1.5 dark:border-neutral-800">
               {creating ? (
-                <form action={createList} className="flex gap-1.5 p-1">
+                <form action={createList} className="flex flex-col gap-1.5 p-1">
                   <input type="hidden" name="household_id" value={householdId} />
                   <input
                     name="name"
@@ -82,13 +98,19 @@ export default function ListSwitcher({
                     autoFocus
                     maxLength={80}
                     placeholder="List name"
-                    className="min-w-0 flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-neutral-700 dark:bg-neutral-900"
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-neutral-700 dark:bg-neutral-900"
+                  />
+                  <input
+                    name="store_name"
+                    maxLength={80}
+                    placeholder="Store name (optional)"
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-neutral-700 dark:bg-neutral-900"
                   />
                   <button
                     type="submit"
-                    className="rounded-lg bg-emerald-600 px-3 text-sm font-semibold text-white active:bg-emerald-700"
+                    className="w-full rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white active:bg-emerald-700"
                   >
-                    Add
+                    Add list
                   </button>
                 </form>
               ) : (
