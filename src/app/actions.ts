@@ -18,19 +18,70 @@ export async function createHousehold(formData: FormData) {
 
 export async function createList(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
+  const storeName = String(formData.get("store_name") ?? "").trim() || null;
   const householdId = String(formData.get("household_id") ?? "");
   if (!name || !householdId) return;
 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("lists")
-    .insert({ household_id: householdId, name })
+    .insert({ household_id: householdId, name, store_name: storeName })
     .select("id")
     .single();
   if (error) throw new Error(error.message);
 
   revalidatePath("/");
   redirect(`/?list=${data.id}`);
+}
+
+export async function createTemplate(
+  householdId: string,
+  name: string,
+  items: string[]
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("not authenticated");
+
+  const { data: template, error: templateError } = await supabase
+    .from("templates")
+    .insert({ household_id: householdId, name, created_by: user.id })
+    .select("id")
+    .single();
+  if (templateError) throw new Error(templateError.message);
+
+  if (items.length > 0) {
+    const rows = items.map((item_name, i) => ({
+      template_id: template.id,
+      item_name,
+      sort_order: i,
+    }));
+    const { error: itemsError } = await supabase
+      .from("template_items")
+      .insert(rows);
+    if (itemsError) throw new Error(itemsError.message);
+  }
+
+  revalidatePath("/");
+}
+
+export async function deleteList(listId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("lists").delete().eq("id", listId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/");
+}
+
+export async function deleteTemplate(templateId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("templates")
+    .delete()
+    .eq("id", templateId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/");
 }
 
 export async function signOut() {

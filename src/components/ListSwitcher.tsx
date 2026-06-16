@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { createList } from "@/app/actions";
+import { useRouter } from "next/navigation";
+import { createList, deleteList } from "@/app/actions";
 
 type Props = {
-  lists: { id: string; name: string }[];
+  lists: { id: string; name: string; store_name: string | null }[];
   activeListId: string;
   activeListName: string;
+  activeListStoreName: string | null;
   householdId: string;
 };
 
@@ -15,8 +17,10 @@ export default function ListSwitcher({
   lists,
   activeListId,
   activeListName,
+  activeListStoreName,
   householdId,
 }: Props) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 
@@ -25,6 +29,24 @@ export default function ListSwitcher({
     setCreating(false);
   }
 
+  async function handleDeleteList(
+    listId: string,
+    listName: string
+  ) {
+    if (
+      !window.confirm(
+        `Delete "${listName}"? All items in it will be removed.`
+      )
+    )
+      return;
+    close();
+    await deleteList(listId);
+    router.push("/");
+    router.refresh();
+  }
+
+  const canDelete = lists.length > 1;
+
   return (
     <div className="relative">
       <button
@@ -32,7 +54,14 @@ export default function ListSwitcher({
         aria-expanded={open}
         className="t-h3 flex items-center gap-1.5 uppercase leading-tight tracking-tight active:opacity-70"
       >
-        {activeListName}
+        <span>
+          {activeListName}
+          {activeListStoreName && (
+            <span className="ml-1.5 text-sm font-normal text-neutral-400">
+              {activeListStoreName}
+            </span>
+          )}
+        </span>
         <span
           aria-hidden
           className={`text-xs text-[var(--fg-muted)] transition-transform ${
@@ -53,16 +82,21 @@ export default function ListSwitcher({
             </div>
             <ul className="flex flex-col">
               {lists.map((list) => (
-                <li key={list.id}>
+                <li key={list.id} className="flex items-center">
                   <Link
                     href={`/?list=${list.id}`}
                     onClick={close}
-                    className={`flex items-center justify-between border-b border-[var(--ink-5)] px-3 py-2.5 text-[var(--fg)] no-underline hover:bg-[var(--paper-2)] hover:text-[var(--fg)] active:bg-[var(--paper-2)] ${
+                    className={`flex flex-1 items-center justify-between border-b border-[var(--ink-5)] px-3 py-2.5 text-[var(--fg)] no-underline hover:bg-[var(--paper-2)] hover:text-[var(--fg)] active:bg-[var(--paper-2)] ${
                       list.id === activeListId ? "font-bold" : ""
                     }`}
                   >
                     <span className="truncate uppercase tracking-wide">
                       {list.name}
+                      {list.store_name && (
+                        <span className="ml-1.5 normal-case tracking-normal text-[var(--fg-2)]">
+                          {list.store_name}
+                        </span>
+                      )}
                     </span>
                     {list.id === activeListId && (
                       <span
@@ -73,13 +107,22 @@ export default function ListSwitcher({
                       </span>
                     )}
                   </Link>
+                  {canDelete && (
+                    <button
+                      onClick={() => handleDeleteList(list.id, list.name)}
+                      aria-label={`Delete ${list.name}`}
+                      className="px-2 py-2.5 text-sm text-[var(--fg-disabled)] active:text-red-500"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
 
             <div className="p-1.5">
               {creating ? (
-                <form action={createList} className="flex gap-1.5">
+                <form action={createList} className="flex flex-col gap-1.5">
                   <input type="hidden" name="household_id" value={householdId} />
                   <input
                     name="name"
@@ -87,9 +130,15 @@ export default function ListSwitcher({
                     autoFocus
                     maxLength={80}
                     placeholder="LIST NAME"
-                    className="field min-w-0 flex-1 !text-sm"
+                    className="field !text-sm"
                   />
-                  <button type="submit" className="btn btn-sm btn-acid shrink-0">
+                  <input
+                    name="store_name"
+                    maxLength={80}
+                    placeholder="Store (optional)"
+                    className="field !text-sm"
+                  />
+                  <button type="submit" className="btn btn-sm btn-acid">
                     ADD
                   </button>
                 </form>
