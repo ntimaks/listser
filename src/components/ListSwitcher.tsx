@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { createList } from "@/app/actions";
+import { useRouter } from "next/navigation";
+import { createList, deleteList } from "@/app/actions";
 
 type Props = {
   lists: { id: string; name: string; store_name: string | null }[];
@@ -19,6 +20,7 @@ export default function ListSwitcher({
   activeListStoreName,
   householdId,
 }: Props) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
 
@@ -26,6 +28,24 @@ export default function ListSwitcher({
     setOpen(false);
     setCreating(false);
   }
+
+  async function handleDeleteList(
+    listId: string,
+    listName: string
+  ) {
+    if (
+      !window.confirm(
+        `Delete "${listName}"? All items in it will be removed.`
+      )
+    )
+      return;
+    close();
+    await deleteList(listId);
+    router.push("/");
+    router.refresh();
+  }
+
+  const canDelete = lists.length > 1;
 
   return (
     <div className="relative">
@@ -62,11 +82,11 @@ export default function ListSwitcher({
           <div className="absolute left-0 top-full z-30 mt-2 w-64 rounded-xl border border-neutral-300 bg-background p-1.5 shadow-lg dark:border-neutral-700">
             <ul className="flex flex-col">
               {lists.map((list) => (
-                <li key={list.id}>
+                <li key={list.id} className="flex items-center">
                   <Link
                     href={`/?list=${list.id}`}
                     onClick={close}
-                    className={`flex items-center justify-between rounded-lg px-3 py-2.5 text-base active:bg-neutral-100 dark:active:bg-neutral-800 ${
+                    className={`flex flex-1 items-center justify-between rounded-lg px-3 py-2.5 text-base active:bg-neutral-100 dark:active:bg-neutral-800 ${
                       list.id === activeListId ? "font-semibold" : ""
                     }`}
                   >
@@ -84,6 +104,15 @@ export default function ListSwitcher({
                       </span>
                     )}
                   </Link>
+                  {canDelete && (
+                    <button
+                      onClick={() => handleDeleteList(list.id, list.name)}
+                      aria-label={`Delete ${list.name}`}
+                      className="px-2 py-2.5 text-sm text-neutral-300 active:text-red-500 dark:text-neutral-600"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>

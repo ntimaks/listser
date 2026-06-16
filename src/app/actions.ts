@@ -67,6 +67,13 @@ export async function createTemplate(
   revalidatePath("/");
 }
 
+export async function deleteList(listId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("lists").delete().eq("id", listId);
+  if (error) throw new Error(error.message);
+  revalidatePath("/");
+}
+
 export async function deleteTemplate(templateId: string) {
   const supabase = await createClient();
   const { error } = await supabase

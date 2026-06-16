@@ -151,6 +151,17 @@ export default function ShoppingList({
     }
   }
 
+  async function deleteItem(item: Item) {
+    if (item.id.startsWith("temp-")) return;
+    const before = items;
+    setItems((prev) => prev.filter((i) => i.id !== item.id));
+    const { error } = await supabase
+      .from("list_items")
+      .delete()
+      .eq("id", item.id);
+    if (error) setItems(before);
+  }
+
   async function toggleItem(item: Item) {
     if (item.id.startsWith("temp-")) return;
     const checking = !item.checked_at;
@@ -390,7 +401,7 @@ export default function ShoppingList({
           )}
           <ul className="flex flex-col gap-1">
             {group.items.map((item) => (
-              <ItemRow key={item.id} item={item} onToggle={toggleItem} />
+              <ItemRow key={item.id} item={item} onToggle={toggleItem} onDelete={deleteItem} />
             ))}
           </ul>
         </section>
@@ -411,7 +422,7 @@ export default function ShoppingList({
           </div>
           <ul className="mt-1 flex flex-col gap-1">
             {checked.map((item) => (
-              <ItemRow key={item.id} item={item} onToggle={toggleItem} />
+              <ItemRow key={item.id} item={item} onToggle={toggleItem} onDelete={deleteItem} />
             ))}
           </ul>
         </section>
@@ -535,19 +546,23 @@ export default function ShoppingList({
 function ItemRow({
   item,
   onToggle,
+  onDelete,
 }: {
   item: Item;
   onToggle: (item: Item) => void;
+  onDelete: (item: Item) => void;
 }) {
   const checked = Boolean(item.checked_at);
   const pending = item.id.startsWith("temp-");
   return (
-    <li>
+    <li
+      className={`flex items-center rounded-xl ${
+        pending ? "opacity-60" : ""
+      }`}
+    >
       <button
         onClick={() => onToggle(item)}
-        className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left active:bg-neutral-100 dark:active:bg-neutral-800 ${
-          pending ? "opacity-60" : ""
-        }`}
+        className="flex flex-1 items-center gap-3 px-3 py-3 text-left active:opacity-70"
       >
         <span
           aria-hidden
@@ -566,6 +581,14 @@ function ItemRow({
         >
           {item.name}
         </span>
+      </button>
+      <button
+        onClick={() => onDelete(item)}
+        disabled={pending}
+        aria-label={`Delete ${item.name}`}
+        className="px-3 py-3 text-sm text-neutral-300 active:text-red-500 dark:text-neutral-600"
+      >
+        ✕
       </button>
     </li>
   );
