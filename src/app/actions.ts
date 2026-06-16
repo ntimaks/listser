@@ -16,6 +16,23 @@ export async function createHousehold(formData: FormData) {
   redirect("/");
 }
 
+export async function createList(formData: FormData) {
+  const name = String(formData.get("name") ?? "").trim();
+  const householdId = String(formData.get("household_id") ?? "");
+  if (!name || !householdId) return;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("lists")
+    .insert({ household_id: householdId, name })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/");
+  redirect(`/?list=${data.id}`);
+}
+
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
