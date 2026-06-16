@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { signOut, createTemplate, deleteTemplate } from "@/app/actions";
 import ListSwitcher from "@/components/ListSwitcher";
+import Drawer from "@/components/Drawer";
 import { groupForStore, normalizeName, type ItemStat } from "@/lib/categories";
 
 type Item = {
@@ -399,7 +400,7 @@ export default function ShoppingList({
                   setDraft(name.charAt(0).toUpperCase() + name.slice(1));
                   inputRef.current?.focus();
                 }}
-                className="rounded-full border border-neutral-200 px-3 py-1 text-sm text-neutral-500 active:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-400 dark:active:bg-neutral-800"
+                className="btn btn-sm btn-ghost"
               >
                 {name}
               </button>
@@ -458,107 +459,89 @@ export default function ShoppingList({
       </div>
 
       {/* Templates bottom drawer */}
-      {showTemplates && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-black/30"
-            aria-hidden
-            onClick={closeTemplates}
-          />
-          <div className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-md rounded-t-2xl bg-background p-4 pb-8 shadow-xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-base font-semibold">Templates</h2>
-              <button
-                onClick={closeTemplates}
-                className="text-sm text-neutral-400 active:opacity-70"
+      <Drawer
+        open={showTemplates}
+        onClose={closeTemplates}
+        title="Templates"
+        code="[TPL]"
+      >
+        {templates.length === 0 ? (
+          <p className="t-small py-4 text-center text-[var(--fg-muted)]">
+            {"// "}no templates yet — save your current list to reuse it later.
+          </p>
+        ) : (
+          <ul className="mb-4 flex flex-col">
+            {templates.map((template) => (
+              <li
+                key={template.id}
+                className="flex items-center justify-between gap-2 border-b border-[var(--ink-5)] py-2.5"
               >
-                Close
-              </button>
-            </div>
-
-            {templates.length === 0 ? (
-              <p className="py-4 text-center text-sm text-neutral-400">
-                No templates yet. Save your current list as a template to reuse it later.
-              </p>
-            ) : (
-              <ul className="mb-4 flex flex-col divide-y divide-neutral-100 dark:divide-neutral-800">
-                {templates.map((template) => (
-                  <li
-                    key={template.id}
-                    className="flex items-center justify-between py-2.5"
-                  >
-                    <div>
-                      <p className="text-base font-medium">{template.name}</p>
-                      <p className="text-xs text-neutral-400">
-                        {template.template_items.length}{" "}
-                        {template.template_items.length === 1 ? "item" : "items"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => applyTemplate(template)}
-                        className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white active:bg-emerald-700"
-                      >
-                        Use
-                      </button>
-                      <button
-                        onClick={() => handleDeleteTemplate(template.id)}
-                        className="rounded-full px-2 py-1 text-sm text-neutral-400 active:opacity-70"
-                        aria-label={`Delete ${template.name}`}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            <div className="border-t border-neutral-200 pt-3 dark:border-neutral-800">
-              {showSaveTemplate ? (
-                <div className="flex gap-2">
-                  <input
-                    autoFocus
-                    value={saveTemplateName}
-                    onChange={(e) => setSaveTemplateName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveTemplate();
-                      if (e.key === "Escape") {
-                        setShowSaveTemplate(false);
-                        setSaveTemplateName("");
-                      }
-                    }}
-                    placeholder="Template name…"
-                    maxLength={80}
-                    className="min-w-0 flex-1 rounded-xl border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-neutral-700 dark:bg-neutral-900"
-                  />
+                <div className="min-w-0">
+                  <p className="t-body truncate">{template.name}</p>
+                  <p className="t-meta">
+                    {template.template_items.length}{" "}
+                    {template.template_items.length === 1 ? "item" : "items"}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
                   <button
-                    onClick={handleSaveTemplate}
-                    disabled={!saveTemplateName.trim() || unchecked.length === 0}
-                    className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white active:bg-emerald-700 disabled:opacity-40"
+                    onClick={() => applyTemplate(template)}
+                    className="btn btn-sm btn-acid"
                   >
-                    Save
+                    Use
+                  </button>
+                  <button
+                    onClick={() => handleDeleteTemplate(template.id)}
+                    className="btn btn-sm btn-ghost active:text-[var(--term-red)]"
+                    aria-label={`Delete ${template.name}`}
+                  >
+                    ✕
                   </button>
                 </div>
-              ) : (
-                <button
-                  onClick={() => setShowSaveTemplate(true)}
-                  disabled={unchecked.length === 0}
-                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm text-neutral-500 active:bg-neutral-100 disabled:opacity-40 dark:active:bg-neutral-800"
-                >
-                  <span aria-hidden>＋</span>
-                  Save current list as template
-                  {unchecked.length > 0 && (
-                    <span className="text-xs text-neutral-400">
-                      ({unchecked.length})
-                    </span>
-                  )}
-                </button>
-              )}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="border-t border-[var(--ink-5)] pt-3">
+          {showSaveTemplate ? (
+            <div className="flex gap-2">
+              <input
+                autoFocus
+                value={saveTemplateName}
+                onChange={(e) => setSaveTemplateName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSaveTemplate();
+                  if (e.key === "Escape") {
+                    setShowSaveTemplate(false);
+                    setSaveTemplateName("");
+                  }
+                }}
+                placeholder="Template name…"
+                maxLength={80}
+                className="field min-w-0 flex-1"
+              />
+              <button
+                onClick={handleSaveTemplate}
+                disabled={!saveTemplateName.trim() || unchecked.length === 0}
+                className="btn btn-sm btn-acid shrink-0"
+              >
+                Save
+              </button>
             </div>
-          </div>
-        </>
-      )}
+          ) : (
+            <button
+              onClick={() => setShowSaveTemplate(true)}
+              disabled={unchecked.length === 0}
+              className="btn btn-ghost flex w-full items-center justify-center gap-2"
+            >
+              <span aria-hidden>＋</span>
+              Save current list as template
+              {unchecked.length > 0 && <span>({unchecked.length})</span>}
+            </button>
+          )}
+        </div>
+      </Drawer>
     </main>
   );
 }
@@ -576,9 +559,7 @@ function ItemRow({
   const pending = item.id.startsWith("temp-");
   return (
     <li
-      className={`flex items-center rounded-xl ${
-        pending ? "opacity-60" : ""
-      }`}
+      className={`flex items-center ${pending ? "opacity-60" : ""}`}
     >
       <button
         onClick={() => onToggle(item)}
@@ -607,7 +588,7 @@ function ItemRow({
         onClick={() => onDelete(item)}
         disabled={pending}
         aria-label={`Delete ${item.name}`}
-        className="shrink-0 px-3 py-3 text-[var(--fg-disabled)] active:text-red-500"
+        className="shrink-0 px-3 py-3 text-[var(--fg-disabled)] active:text-[var(--term-red)]"
       >
         ✕
       </button>

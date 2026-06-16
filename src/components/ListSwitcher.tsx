@@ -57,7 +57,7 @@ export default function ListSwitcher({
         <span>
           {activeListName}
           {activeListStoreName && (
-            <span className="ml-1.5 text-sm font-normal text-neutral-400">
+            <span className="ml-1.5 text-sm font-normal text-[var(--fg-disabled)]">
               {activeListStoreName}
             </span>
           )}
@@ -111,7 +111,7 @@ export default function ListSwitcher({
                     <button
                       onClick={() => handleDeleteList(list.id, list.name)}
                       aria-label={`Delete ${list.name}`}
-                      className="px-2 py-2.5 text-sm text-[var(--fg-disabled)] active:text-red-500"
+                      className="px-2 py-2.5 text-sm text-[var(--fg-disabled)] active:text-[var(--term-red)]"
                     >
                       ✕
                     </button>

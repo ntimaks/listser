@@ -508,3 +508,35 @@ a:hover,
   color: var(--ink-0);
   text-decoration: none;
 }
+
+/* =========================================================
+   DRAWER — bottom sheet slide-in (square corners, stamp shadow)
+   ========================================================= */
+@keyframes drawer-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes drawer-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.drawer-sheet {
+  animation: drawer-up var(--dur-base) var(--ease-out);
+}
+.drawer-backdrop {
+  animation: drawer-fade var(--dur-fast) var(--ease-linear);
+}
+@media (prefers-reduced-motion: reduce) {
+  .drawer-sheet,
+  .drawer-backdrop {
+    animation: none;
+  }
+}
