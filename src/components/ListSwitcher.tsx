@@ -3,12 +3,21 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createList } from "@/app/actions";
+import { COPY, LIST_TYPES, type ListType } from "@/lib/listTypes";
+
+type ListSummary = {
+  id: string;
+  name: string;
+  store_name: string | null;
+  type: ListType;
+};
 
 type Props = {
-  lists: { id: string; name: string; store_name: string | null }[];
+  lists: ListSummary[];
   activeListId: string;
   activeListName: string;
   activeListStoreName: string | null;
+  activeListType: ListType;
   householdId: string;
 };
 
@@ -17,14 +26,17 @@ export default function ListSwitcher({
   activeListId,
   activeListName,
   activeListStoreName,
+  activeListType,
   householdId,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [newType, setNewType] = useState<ListType>("grocery");
 
   function close() {
     setOpen(false);
     setCreating(false);
+    setNewType("grocery");
   }
 
   return (
@@ -35,6 +47,9 @@ export default function ListSwitcher({
         className="flex items-center gap-1.5 rounded-lg py-0.5 text-xl font-bold leading-tight active:opacity-70"
       >
         <span>
+          <span aria-hidden className="mr-1.5 text-base">
+            {COPY[activeListType].icon}
+          </span>
           {activeListName}
           {activeListStoreName && (
             <span className="ml-1.5 text-sm font-normal text-neutral-400">
@@ -71,6 +86,9 @@ export default function ListSwitcher({
                     }`}
                   >
                     <span>
+                      <span aria-hidden className="mr-2 text-sm">
+                        {COPY[list.type].icon}
+                      </span>
                       {list.name}
                       {list.store_name && (
                         <span className="ml-1.5 text-sm font-normal text-neutral-400">
@@ -92,6 +110,28 @@ export default function ListSwitcher({
               {creating ? (
                 <form action={createList} className="flex flex-col gap-1.5 p-1">
                   <input type="hidden" name="household_id" value={householdId} />
+                  <input type="hidden" name="type" value={newType} />
+
+                  <div className="flex gap-1">
+                    {LIST_TYPES.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setNewType(t)}
+                        className={`flex-1 rounded-lg border px-1 py-1.5 text-xs font-medium ${
+                          newType === t
+                            ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
+                            : "border-neutral-300 text-neutral-500 dark:border-neutral-700"
+                        }`}
+                      >
+                        <span aria-hidden className="mr-0.5">
+                          {COPY[t].icon}
+                        </span>
+                        {COPY[t].label}
+                      </button>
+                    ))}
+                  </div>
+
                   <input
                     name="name"
                     required
@@ -100,12 +140,14 @@ export default function ListSwitcher({
                     placeholder="List name"
                     className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-neutral-700 dark:bg-neutral-900"
                   />
-                  <input
-                    name="store_name"
-                    maxLength={80}
-                    placeholder="Store name (optional)"
-                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-neutral-700 dark:bg-neutral-900"
-                  />
+                  {newType === "grocery" && (
+                    <input
+                      name="store_name"
+                      maxLength={80}
+                      placeholder="Store name (optional)"
+                      className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-emerald-500 dark:border-neutral-700 dark:bg-neutral-900"
+                    />
+                  )}
                   <button
                     type="submit"
                     className="w-full rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white active:bg-emerald-700"
