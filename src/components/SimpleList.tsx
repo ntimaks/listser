@@ -1,0 +1,178 @@
+"use client";
+
+import { useMemo, useRef, useState } from "react";
+import ListHeader from "@/components/ListHeader";
+import ItemRow from "@/components/ItemRow";
+import ItemDetailSheet from "@/components/ItemDetailSheet";
+import { useListItems, type Item } from "@/lib/useListItems";
+import { COPY, type ListType } from "@/lib/listTypes";
+
+type ListSummary = {
+  id: string;
+  name: string;
+  store_name: string | null;
+  type: ListType;
+};
+
+type Props = {
+  type: "todo" | "wishlist";
+  listId: string;
+  listName: string;
+  lists: ListSummary[];
+  householdId: string;
+  householdName: string;
+  inviteCode: string;
+  userId: string;
+  initialItems: Item[];
+};
+
+// Flat view for the non-grocery types: non-destructive completion (done/acquired
+// items stay until cleared), a tap-to-edit detail sheet, and item promotion.
+export default function SimpleList({
+  type,
+  listId,
+  listName,
+  lists,
+  householdId,
+  householdName,
+  inviteCode,
+  userId,
+  initialItems,
+}: Props) {
+  const { items, addItem, toggleItem, updateItem, deleteItem, deleteItems, moveItem } =
+    useListItems(listId, userId, initialItems);
+  const [draft, setDraft] = useState("");
+  const [editing, setEditing] = useState<Item | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const copy = COPY[type];
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    const name = draft.trim();
+    if (!name) return;
+    setDraft("");
+    inputRef.current?.focus();
+    await addItem(name);
+  }
+
+  const unchecked = items.filter((i) => !i.checked_at);
+  const checked = items.filter((i) => i.checked_at);
+
+  // Wishlist floats "soon" items to the top so "someday" ones don't clutter it;
+  // todo keeps insertion order.
+  const activeItems = useMemo(() => {
+    if (type !== "wishlist") return unchecked;
+    const rank = (p: Item["priority"]) =>
+      p === "soon" ? 0 : p === "someday" ? 2 : 1;
+    return [...unchecked].sort((a, b) => rank(a.priority) - rank(b.priority));
+  }, [unchecked, type]);
+
+  // Keep the open detail sheet bound to the latest item state.
+  const editingItem = editing
+    ? items.find((i) => i.id === editing.id) ?? null
+    : null;
+
+  return (
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pb-24">
+      <ListHeader
+        lists={lists}
+        activeListId={listId}
+        activeListName={listName}
+        activeListStoreName={null}
+        activeListType={type}
+        householdId={householdId}
+        householdName={householdName}
+        inviteCode={inviteCode}
+        itemCount={unchecked.length + checked.length}
+      />
+
+      <form
+        onSubmit={handleAdd}
+        className="sticky top-0 z-10 bg-[var(--bg)] pb-3 pt-3"
+      >
+        <div className="flex gap-2">
+          <input
+            ref={inputRef}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={copy.addPlaceholder}
+            enterKeyHint="done"
+            autoComplete="off"
+            autoCapitalize="sentences"
+            className="field min-w-0 flex-1"
+          />
+          <button
+            type="submit"
+            disabled={!draft.trim()}
+            className="btn btn-acid shrink-0"
+            aria-label="Add item"
+          >
+            + ADD
+          </button>
+        </div>
+      </form>
+
+      {unchecked.length === 0 && checked.length === 0 && (
+        <p className="t-small py-12 text-center text-[var(--fg-muted)]">
+          {copy.emptyState}
+        </p>
+      )}
+
+      <ul className="mt-1 flex flex-col">
+        {activeItems.map((item) => (
+          <ItemRow
+            key={item.id}
+            item={item}
+            type={type}
+            onToggle={toggleItem}
+            onDelete={deleteItem}
+            onOpen={setEditing}
+          />
+        ))}
+      </ul>
+
+      {checked.length > 0 && (
+        <section className="mt-8">
+          <div className="flex items-center justify-between border-b border-[var(--ink-5)] px-1 pb-1.5">
+            <h2 className="t-meta">
+              [{copy.checkedHeading} · {checked.length}]
+            </h2>
+            <button
+              onClick={() => deleteItems(checked.map((i) => i.id))}
+              className="btn btn-sm btn-ghost"
+            >
+              {copy.clearLabel}
+            </button>
+          </div>
+          <ul className="flex flex-col">
+            {checked.map((item) => (
+              <ItemRow
+                key={item.id}
+                item={item}
+                type={type}
+                onToggle={toggleItem}
+                onDelete={deleteItem}
+                onOpen={setEditing}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {editingItem && (
+        <ItemDetailSheet
+          key={editingItem.id}
+          item={editingItem}
+          type={type}
+          lists={lists}
+          currentListId={listId}
+          onClose={() => setEditing(null)}
+          onSave={updateItem}
+          onDelete={deleteItem}
+          onMove={moveItem}
+        />
+      )}
+    </main>
+  );
+}

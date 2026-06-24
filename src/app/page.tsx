@@ -73,7 +73,7 @@ export default async function Home({
 
   const { data } = await supabase
     .from("lists")
-    .select("id, name, store_name")
+    .select("id, name, store_name, type")
     .eq("household_id", household.id)
     .order("created_at", { ascending: true });
 
@@ -81,6 +81,7 @@ export default async function Home({
     id: string;
     name: string;
     store_name: string | null;
+    type: "grocery" | "todo" | "wishlist";
   }[];
   // Fall back to the first list when the ?list= param is missing or stale.
   const { list: requestedId } = await searchParams;
@@ -98,17 +99,23 @@ export default async function Home({
 
   const { data: items } = await supabase
     .from("list_items")
-    .select("id, name, created_at, checked_at, checked_by, created_by")
+    .select(
+      "id, name, created_at, checked_at, checked_by, created_by, priority, price_cents, url, notes"
+    )
     .eq("list_id", list.id)
     .order("created_at", { ascending: true });
 
-  const stats = await fetchAisleStats(supabase, list.id);
+  // Aisle stats and templates are grocery-only; skip the round-trips otherwise.
+  const isGrocery = list.type === "grocery";
+  const stats = isGrocery ? await fetchAisleStats(supabase, list.id) : [];
 
-  const { data: templatesData } = await supabase
-    .from("templates")
-    .select("id, name, template_items(item_name, sort_order)")
-    .eq("household_id", household.id)
-    .order("created_at", { ascending: true });
+  const { data: templatesData } = isGrocery
+    ? await supabase
+        .from("templates")
+        .select("id, name, template_items(item_name, sort_order)")
+        .eq("household_id", household.id)
+        .order("created_at", { ascending: true })
+    : { data: [] };
 
   const templates = (templatesData ?? []) as {
     id: string;
@@ -122,6 +129,7 @@ export default async function Home({
       listId={list.id}
       listName={list.name}
       listStoreName={list.store_name ?? null}
+      listType={list.type}
       lists={lists}
       householdId={household.id}
       householdName={household.name}
