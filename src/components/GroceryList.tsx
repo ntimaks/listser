@@ -114,6 +114,8 @@ export default function GroceryList({
       price_cents: null,
       url: null,
       notes: null,
+      importance: null,
+      effort: null,
     }));
     setItems((prev) => [...prev, ...optimisticItems]);
 

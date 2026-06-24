@@ -48,9 +48,13 @@ export default function Drawer({ open, onClose, title, code, children }: Props) 
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="drawer-sheet panel panel-stamp fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-md"
+        className="drawer-sheet panel panel-stamp fixed bottom-0 left-0 right-0 z-50 mx-auto flex max-h-[88dvh] max-w-md flex-col"
       >
-        <div className="panel-head">
+        {/* Grab handle for affordance. */}
+        <div className="flex flex-none justify-center pt-2" aria-hidden>
+          <span className="h-1 w-10 rounded-full bg-[var(--ink-5)]" />
+        </div>
+        <div className="panel-head flex-none">
           <span>{title}</span>
           <div className="flex items-center gap-2">
             {code && <span>{code}</span>}
@@ -64,7 +68,16 @@ export default function Drawer({ open, onClose, title, code, children }: Props) 
             </button>
           </div>
         </div>
-        <div className="p-[var(--s-4)] pb-[var(--s-6)]">{children}</div>
+        {/* Scrollable body so tall content never overflows the viewport, with
+            safe-area padding for home-indicator phones. */}
+        <div
+          className="flex-1 overflow-y-auto overscroll-contain px-[var(--s-4)] pt-[var(--s-4)]"
+          style={{
+            paddingBottom: "max(var(--s-6), env(safe-area-inset-bottom))",
+          }}
+        >
+          {children}
+        </div>
       </div>
     </>
   );

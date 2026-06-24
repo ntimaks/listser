@@ -11,16 +11,23 @@ export type Item = {
   checked_by: string | null;
   created_by: string;
   // Optional fields added in 0006. Null on grocery rows; used by wishlist
-  // (priority/price/url) and shared by todo+wishlist (notes).
+  // (price/url) and shared by todo+wishlist (notes). `priority` is legacy
+  // (replaced by `importance` in 0007) and no longer surfaced in the UI.
   priority: "soon" | "someday" | null;
   price_cents: number | null;
   url: string | null;
   notes: string | null;
+  // 1–5 rankable attributes added in 0007, shared by todo + wishlist.
+  importance: number | null;
+  effort: number | null;
 };
 
 // Fields a caller may set when creating an item (wishlist add, etc.).
 export type ItemExtras = Partial<
-  Pick<Item, "priority" | "price_cents" | "url" | "notes">
+  Pick<
+    Item,
+    "priority" | "price_cents" | "url" | "notes" | "importance" | "effort"
+  >
 >;
 
 // crypto.randomUUID() only exists in secure contexts (https / localhost), so
@@ -43,9 +50,16 @@ export function stamp(iso: string) {
 
 function blankExtras(): Pick<
   Item,
-  "priority" | "price_cents" | "url" | "notes"
+  "priority" | "price_cents" | "url" | "notes" | "importance" | "effort"
 > {
-  return { priority: null, price_cents: null, url: null, notes: null };
+  return {
+    priority: null,
+    price_cents: null,
+    url: null,
+    notes: null,
+    importance: null,
+    effort: null,
+  };
 }
 
 /**
