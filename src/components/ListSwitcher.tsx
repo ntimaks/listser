@@ -4,12 +4,21 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createList, deleteList } from "@/app/actions";
+import { COPY, LIST_TYPES, type ListType } from "@/lib/listTypes";
+
+type ListSummary = {
+  id: string;
+  name: string;
+  store_name: string | null;
+  type: ListType;
+};
 
 type Props = {
-  lists: { id: string; name: string; store_name: string | null }[];
+  lists: ListSummary[];
   activeListId: string;
   activeListName: string;
   activeListStoreName: string | null;
+  activeListType: ListType;
   householdId: string;
 };
 
@@ -18,25 +27,23 @@ export default function ListSwitcher({
   activeListId,
   activeListName,
   activeListStoreName,
+  activeListType,
   householdId,
 }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [newType, setNewType] = useState<ListType>("grocery");
 
   function close() {
     setOpen(false);
     setCreating(false);
+    setNewType("grocery");
   }
 
-  async function handleDeleteList(
-    listId: string,
-    listName: string
-  ) {
+  async function handleDeleteList(listId: string, listName: string) {
     if (
-      !window.confirm(
-        `Delete "${listName}"? All items in it will be removed.`
-      )
+      !window.confirm(`Delete "${listName}"? All items in it will be removed.`)
     )
       return;
     close();
@@ -54,7 +61,10 @@ export default function ListSwitcher({
         aria-expanded={open}
         className="t-h3 flex items-center gap-1.5 uppercase leading-tight tracking-tight active:opacity-70"
       >
-        <span>
+        <span className="flex items-center gap-1.5">
+          <span className="t-stamp text-[var(--fg-muted)]">
+            {COPY[activeListType].tag}
+          </span>
           {activeListName}
           {activeListStoreName && (
             <span className="ml-1.5 text-sm font-normal text-[var(--fg-disabled)]">
@@ -75,7 +85,7 @@ export default function ListSwitcher({
       {open && (
         <>
           <div className="fixed inset-0 z-20" aria-hidden onClick={close} />
-          <div className="panel panel-stamp absolute left-0 top-full z-30 mt-2 w-64">
+          <div className="panel panel-stamp absolute left-0 top-full z-30 mt-2 w-72">
             <div className="panel-head">
               <span>[LISTS]</span>
               <span>{String(lists.length).padStart(2, "0")}</span>
@@ -86,11 +96,14 @@ export default function ListSwitcher({
                   <Link
                     href={`/?list=${list.id}`}
                     onClick={close}
-                    className={`flex flex-1 items-center justify-between border-b border-[var(--ink-5)] px-3 py-2.5 text-[var(--fg)] no-underline hover:bg-[var(--paper-2)] hover:text-[var(--fg)] active:bg-[var(--paper-2)] ${
+                    className={`flex flex-1 items-center gap-2 border-b border-[var(--ink-5)] px-3 py-2.5 text-[var(--fg)] no-underline hover:bg-[var(--paper-2)] hover:text-[var(--fg)] active:bg-[var(--paper-2)] ${
                       list.id === activeListId ? "font-bold" : ""
                     }`}
                   >
-                    <span className="truncate uppercase tracking-wide">
+                    <span className="t-stamp shrink-0 text-[var(--fg-muted)]">
+                      {COPY[list.type].tag}
+                    </span>
+                    <span className="flex-1 truncate uppercase tracking-wide">
                       {list.name}
                       {list.store_name && (
                         <span className="ml-1.5 normal-case tracking-normal text-[var(--fg-2)]">
@@ -99,10 +112,7 @@ export default function ListSwitcher({
                       )}
                     </span>
                     {list.id === activeListId && (
-                      <span
-                        aria-hidden
-                        className="text-sm text-[var(--cobalt)]"
-                      >
+                      <span aria-hidden className="text-sm text-[var(--cobalt)]">
                         ▸
                       </span>
                     )}
@@ -124,6 +134,23 @@ export default function ListSwitcher({
               {creating ? (
                 <form action={createList} className="flex flex-col gap-1.5">
                   <input type="hidden" name="household_id" value={householdId} />
+                  <input type="hidden" name="type" value={newType} />
+
+                  <div className="flex gap-1">
+                    {LIST_TYPES.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setNewType(t)}
+                        className={`btn btn-sm flex-1 ${
+                          newType === t ? "btn-acid" : ""
+                        }`}
+                      >
+                        {COPY[t].tag}
+                      </button>
+                    ))}
+                  </div>
+
                   <input
                     name="name"
                     required
@@ -132,12 +159,14 @@ export default function ListSwitcher({
                     placeholder="LIST NAME"
                     className="field !text-sm"
                   />
-                  <input
-                    name="store_name"
-                    maxLength={80}
-                    placeholder="Store (optional)"
-                    className="field !text-sm"
-                  />
+                  {newType === "grocery" && (
+                    <input
+                      name="store_name"
+                      maxLength={80}
+                      placeholder="Store (optional)"
+                      className="field !text-sm"
+                    />
+                  )}
                   <button type="submit" className="btn btn-sm btn-acid">
                     ADD
                   </button>

@@ -18,14 +18,22 @@ export async function createHousehold(formData: FormData) {
 
 export async function createList(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
-  const storeName = String(formData.get("store_name") ?? "").trim() || null;
   const householdId = String(formData.get("household_id") ?? "");
+  const rawType = String(formData.get("type") ?? "grocery");
+  const type = ["grocery", "todo", "wishlist"].includes(rawType)
+    ? rawType
+    : "grocery";
+  // store_name only means something for a grocery (per-store aisle learning).
+  const storeName =
+    type === "grocery"
+      ? String(formData.get("store_name") ?? "").trim() || null
+      : null;
   if (!name || !householdId) return;
 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("lists")
-    .insert({ household_id: householdId, name, store_name: storeName })
+    .insert({ household_id: householdId, name, store_name: storeName, type })
     .select("id")
     .single();
   if (error) throw new Error(error.message);
