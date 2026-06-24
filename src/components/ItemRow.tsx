@@ -2,7 +2,12 @@
 
 import type { Item } from "@/lib/useListItems";
 import { stamp } from "@/lib/useListItems";
-import { type ListType, formatPrice } from "@/lib/listTypes";
+import {
+  type ListType,
+  formatPrice,
+  attrLabels,
+  levelColor,
+} from "@/lib/listTypes";
 
 // A single item row in the NIKOLASS terminal style. Grocery keeps main's
 // behavior (row = toggle, ✕ = delete). Todo/wishlist (when `onOpen` is given)
@@ -63,9 +68,13 @@ export default function ItemRow({
   }
 
   // Todo / wishlist: checkbox toggles, name area opens detail, ✕ deletes.
+  const labels = attrLabels(type);
   const price = type === "wishlist" ? formatPrice(item.price_cents) : null;
   const showMeta =
-    type === "wishlist" && (item.priority || price || item.url);
+    item.importance != null ||
+    item.effort != null ||
+    price ||
+    (type === "wishlist" && item.url);
 
   return (
     <li
@@ -88,15 +97,14 @@ export default function ItemRow({
           <span className={`${nameClass} block`}>{item.name}</span>
           {showMeta && (
             <span className="mt-1 flex flex-wrap items-center gap-2">
-              {item.priority && (
-                <span
-                  className={`t-meta ${
-                    item.priority === "soon"
-                      ? "text-[var(--term-amber)]"
-                      : "text-[var(--fg-muted)]"
-                  }`}
-                >
-                  {item.priority === "soon" ? "SOON" : "SOMEDAY"}
+              {item.importance != null && (
+                <span className={`t-meta ${levelColor(item.importance, "importance")}`}>
+                  IMP {item.importance}
+                </span>
+              )}
+              {item.effort != null && (
+                <span className={`t-meta ${levelColor(item.effort, "effort")}`}>
+                  {labels.effortTag} {item.effort}
                 </span>
               )}
               {price && (

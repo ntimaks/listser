@@ -85,7 +85,7 @@ export default function ListSwitcher({
       {open && (
         <>
           <div className="fixed inset-0 z-20" aria-hidden onClick={close} />
-          <div className="panel panel-stamp absolute left-0 top-full z-30 mt-2 w-72">
+          <div className="panel panel-stamp absolute left-0 top-full z-30 mt-2 w-[min(18rem,calc(100vw-2rem))]">
             <div className="panel-head">
               <span>[LISTS]</span>
               <span>{String(lists.length).padStart(2, "0")}</span>

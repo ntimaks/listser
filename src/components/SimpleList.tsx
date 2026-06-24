@@ -5,7 +5,7 @@ import ListHeader from "@/components/ListHeader";
 import ItemRow from "@/components/ItemRow";
 import ItemDetailSheet from "@/components/ItemDetailSheet";
 import { useListItems, type Item } from "@/lib/useListItems";
-import { COPY, type ListType } from "@/lib/listTypes";
+import { COPY, quickWinSort, type ListType } from "@/lib/listTypes";
 
 type ListSummary = {
   id: string;
@@ -59,14 +59,9 @@ export default function SimpleList({
   const unchecked = items.filter((i) => !i.checked_at);
   const checked = items.filter((i) => i.checked_at);
 
-  // Wishlist floats "soon" items to the top so "someday" ones don't clutter it;
-  // todo keeps insertion order.
-  const activeItems = useMemo(() => {
-    if (type !== "wishlist") return unchecked;
-    const rank = (p: Item["priority"]) =>
-      p === "soon" ? 0 : p === "someday" ? 2 : 1;
-    return [...unchecked].sort((a, b) => rank(a.priority) - rank(b.priority));
-  }, [unchecked, type]);
+  // "Quick wins": high-importance, low-effort items float to the top (for both
+  // to-do and wishlist). Unrated items sink to the bottom.
+  const activeItems = useMemo(() => quickWinSort(unchecked), [unchecked]);
 
   // Keep the open detail sheet bound to the latest item state.
   const editingItem = editing
