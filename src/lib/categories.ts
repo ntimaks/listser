@@ -243,6 +243,15 @@ export type ItemStat = {
   trip_count: number;
 };
 
+// A buy-again candidate from the purchase log (0008/0009): most-bought items
+// for a list, ranked server-side. `name` is the most recent display form.
+export type BuyAgainItem = {
+  name: string;
+  name_key: string;
+  buy_count: number;
+  last_bought_at: string;
+};
+
 export type Group<T> = {
   category: CategoryId;
   label: string;

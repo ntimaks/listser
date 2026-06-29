@@ -1,7 +1,7 @@
 import GroceryList from "@/components/GroceryList";
 import SimpleList from "@/components/SimpleList";
 import type { Item } from "@/lib/useListItems";
-import type { ItemStat } from "@/lib/categories";
+import type { ItemStat, BuyAgainItem } from "@/lib/categories";
 import type { ListType } from "@/lib/listTypes";
 
 type Template = {
@@ -29,6 +29,7 @@ type Props = {
   userId: string;
   initialItems: Item[];
   initialStats: ItemStat[];
+  initialBuyAgain: BuyAgainItem[];
   initialTemplates: Template[];
 };
 
@@ -49,6 +50,7 @@ export default function ShoppingList(props: Props) {
         userId={props.userId}
         initialItems={props.initialItems}
         initialStats={props.initialStats}
+        initialBuyAgain={props.initialBuyAgain}
         initialTemplates={props.initialTemplates}
       />
     );

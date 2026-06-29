@@ -78,7 +78,7 @@ export default function ItemRow({
 
   return (
     <li
-      className={`flex items-center border-b border-[var(--ink-5)] ${
+      className={`flex items-center border-b gap-2 border-[var(--ink-5)] ${
         pending ? "opacity-60" : ""
       }`}
     >

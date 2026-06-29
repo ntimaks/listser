@@ -6,7 +6,12 @@ import ListHeader from "@/components/ListHeader";
 import ItemRow from "@/components/ItemRow";
 import Drawer from "@/components/Drawer";
 import { useListItems, makeId, type Item } from "@/lib/useListItems";
-import { groupForStore, normalizeName, type ItemStat } from "@/lib/categories";
+import {
+  groupForStore,
+  normalizeName,
+  type ItemStat,
+  type BuyAgainItem,
+} from "@/lib/categories";
 import { COPY, type ListType } from "@/lib/listTypes";
 
 type TemplateItem = { item_name: string; sort_order: number };
@@ -30,6 +35,7 @@ type Props = {
   userId: string;
   initialItems: Item[];
   initialStats: ItemStat[];
+  initialBuyAgain: BuyAgainItem[];
   initialTemplates: Template[];
 };
 
@@ -44,11 +50,13 @@ export default function GroceryList({
   userId,
   initialItems,
   initialStats,
+  initialBuyAgain,
   initialTemplates,
 }: Props) {
   const { supabase, items, setItems, addItem, toggleItem, deleteItem } =
     useListItems(listId, userId, initialItems);
   const [stats, setStats] = useState<ItemStat[]>(initialStats);
+  const [buyAgain, setBuyAgain] = useState<BuyAgainItem[]>(initialBuyAgain);
   const [templates, setTemplates] = useState<Template[]>(initialTemplates);
   const [draft, setDraft] = useState("");
   const [showTemplates, setShowTemplates] = useState(false);
@@ -90,6 +98,13 @@ export default function GroceryList({
       .eq("list_id", listId)
       .gte("last_seen_at", staleCutoff.toISOString());
     if (data) setStats(data as ItemStat[]);
+
+    // The trip just appended to the purchase log, so buy-again ranks shift.
+    const { data: ba } = await supabase.rpc("buy_again", {
+      p_list_id: listId,
+      p_limit: 12,
+    });
+    if (ba) setBuyAgain(ba as BuyAgainItem[]);
   }
 
   // Apply a template: bulk-insert its items, skipping names already on the list.
@@ -170,15 +185,12 @@ export default function GroceryList({
     [unchecked, statsMap]
   );
 
-  // Frequently-bought items (≥3 trips) not already on the current list.
+  // Buy-again: the list's most-bought items (ranked server-side from the
+  // purchase log) that aren't already on the list — in the cart or not.
   const suggestions = useMemo(() => {
-    const onList = new Set(unchecked.map((i) => normalizeName(i.name)));
-    return stats
-      .filter((s) => s.trip_count >= 3 && !onList.has(s.name_key))
-      .sort((a, b) => b.trip_count - a.trip_count)
-      .slice(0, 5)
-      .map((s) => s.name_key);
-  }, [stats, unchecked]);
+    const onList = new Set(items.map((i) => normalizeName(i.name)));
+    return buyAgain.filter((b) => !onList.has(b.name_key)).slice(0, 6);
+  }, [buyAgain, items]);
 
   function closeTemplates() {
     setShowTemplates(false);
@@ -227,17 +239,15 @@ export default function GroceryList({
         </div>
         {suggestions.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {suggestions.map((name) => (
+            {suggestions.map((s) => (
               <button
-                key={name}
+                key={s.name_key}
                 type="button"
-                onClick={() => {
-                  setDraft(name.charAt(0).toUpperCase() + name.slice(1));
-                  inputRef.current?.focus();
-                }}
+                onClick={() => addItem(s.name)}
                 className="btn btn-sm btn-ghost"
+                aria-label={`Add ${s.name}`}
               >
-                {name}
+                + {s.name}
               </button>
             ))}
           </div>

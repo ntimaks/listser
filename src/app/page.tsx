@@ -16,6 +16,18 @@ async function fetchAisleStats(
   return data ?? [];
 }
 
+// Buy-again candidates ranked from the purchase log (RPC handles the GROUP BY).
+async function fetchBuyAgain(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  listId: string
+) {
+  const { data } = await supabase.rpc("buy_again", {
+    p_list_id: listId,
+    p_limit: 12,
+  });
+  return data ?? [];
+}
+
 export default async function Home({
   searchParams,
 }: {
@@ -108,6 +120,7 @@ export default async function Home({
   // Aisle stats and templates are grocery-only; skip the round-trips otherwise.
   const isGrocery = list.type === "grocery";
   const stats = isGrocery ? await fetchAisleStats(supabase, list.id) : [];
+  const buyAgain = isGrocery ? await fetchBuyAgain(supabase, list.id) : [];
 
   const { data: templatesData } = isGrocery
     ? await supabase
@@ -137,6 +150,7 @@ export default async function Home({
       userId={user.id}
       initialItems={items ?? []}
       initialStats={stats}
+      initialBuyAgain={buyAgain}
       initialTemplates={templates}
     />
   );
