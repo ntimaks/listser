@@ -76,7 +76,7 @@ export default async function Home({
           </button>
         </form>
         <p className="t-meta max-w-sm text-center">
-          {"// "}got an invite link? just open it — you&rsquo;ll join their
+          {"// "}got an invite link? open it and you&rsquo;ll join their
           household automatically.
         </p>
       </main>
@@ -102,7 +102,7 @@ export default async function Home({
     return (
       <main className="flex min-h-dvh items-center justify-center px-6">
         <p className="t-small text-center text-[var(--fg-2)]">
-          {"// "}no list found for this household — re-run the setup SQL or
+          {"// "}no list was found for this household. re-run the setup SQL or
           create one in Supabase.
         </p>
       </main>

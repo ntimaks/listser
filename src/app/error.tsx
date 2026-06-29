@@ -29,7 +29,7 @@ export default function Error({
             {"// "}something broke while loading this list.
           </p>
           <p className="t-small text-[var(--fg-2)]">
-            Your data is safe — try again, and if it keeps happening reload the
+            Your data is safe. Try again, and if it keeps happening, reload the
             page.
           </p>
           <div className="flex gap-2">

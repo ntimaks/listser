@@ -255,7 +255,7 @@ export default function GroceryList({
               ))}
             </div>
             <Hint motion="wave" className="mt-1.5">
-              your most-bought items — tap to add
+              your most-bought items. tap to add one
             </Hint>
           </>
         )}
@@ -269,7 +269,7 @@ export default function GroceryList({
       )}
       {unchecked.length > 0 && groups.length > 1 && (
         <Hint motion="idle" className="mt-3">
-          auto-sorted by aisle — it learns your store each trip
+          sorted by aisle automatically. it learns your store as you shop
         </Hint>
       )}
       {groups.map((group, gi) => (
@@ -341,7 +341,7 @@ export default function GroceryList({
         </Hint>
         {templates.length === 0 ? (
           <p className="t-small py-4 text-center text-[var(--fg-muted)]">
-            {"// "}no templates yet — save your current list to reuse it later.
+            {"// "}no templates yet. save your current list to reuse it later.
           </p>
         ) : (
           <ul className="mb-4 flex flex-col">

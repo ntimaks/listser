@@ -121,7 +121,7 @@ export default function SimpleList({
 
       {activeItems.length > 1 && (
         <Hint motion="idle" className="mt-1">
-          ordered by quick wins — high importance, low {effortWord} first
+          ordered by quick wins: high importance and low {effortWord} first
         </Hint>
       )}
 
