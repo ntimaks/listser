@@ -391,6 +391,14 @@ hr,
   border-color: var(--cobalt);
   color: var(--cobalt);
 }
+.btn-danger {
+  border-color: var(--term-red);
+  color: var(--term-red);
+}
+.btn-danger:not(:disabled):hover {
+  background: var(--term-red);
+  color: var(--paper-0);
+}
 .btn-ghost {
   border: var(--bw-1) dashed var(--ink-3);
   color: var(--ink-3);
@@ -507,6 +515,48 @@ a:hover,
   background: var(--acid);
   color: var(--ink-0);
   text-decoration: none;
+}
+
+/* =========================================================
+   NAV HINT — pending dot on the list row being switched to.
+   Fixed size + delayed fade so fast switches never flash
+   (toggled by useLinkStatus in the list switcher).
+   ========================================================= */
+.list-hint {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  margin-left: 0.4rem;
+  border-radius: var(--r-pill);
+  background: var(--cobalt);
+  opacity: 0;
+  visibility: hidden;
+}
+.list-hint.is-pending {
+  visibility: visible;
+  animation-name: list-hint-in, list-hint-pulse;
+  animation-duration: 200ms, 1s;
+  animation-delay: 100ms, 100ms;
+  animation-timing-function: ease, ease-in-out;
+  animation-iteration-count: 1, infinite;
+  animation-fill-mode: forwards, none;
+}
+@keyframes list-hint-in {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes list-hint-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .list-hint.is-pending {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 /* =========================================================
