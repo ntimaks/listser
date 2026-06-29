@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signOut } from "@/app/actions";
 import ListSwitcher from "@/components/ListSwitcher";
+import Pixl from "@/components/Pixl";
 import { stamp } from "@/lib/useListItems";
 import type { ListType } from "@/lib/listTypes";
 
@@ -63,7 +64,10 @@ export default function ListHeader({
   return (
     <header className="panel mt-3">
       <div className="panel-head">
-        <span>LISTSER // {BAND_LABEL[activeListType]}</span>
+        <span className="flex items-center gap-1.5">
+          <Pixl motion="idle" size={11} title="Pixl, the resident" />
+          LISTSER // {BAND_LABEL[activeListType]}
+        </span>
         <span>
           {stamp(new Date().toISOString())} · {itemCount}{" "}
           {itemCount === 1 ? "ITEM" : "ITEMS"}
@@ -80,6 +84,9 @@ export default function ListHeader({
             householdId={householdId}
           />
           <p className="t-meta mt-1 truncate">▸ {householdName}</p>
+          <p className="t-meta mt-0.5 truncate text-[var(--fg-muted)]">
+            changes sync live · [INVITE] to add people
+          </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <button onClick={shareInvite} className="btn btn-sm">

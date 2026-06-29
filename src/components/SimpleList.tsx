@@ -4,8 +4,10 @@ import { useMemo, useRef, useState } from "react";
 import ListHeader from "@/components/ListHeader";
 import ItemRow from "@/components/ItemRow";
 import ItemDetailSheet from "@/components/ItemDetailSheet";
+import Hint from "@/components/Hint";
+import Pixl from "@/components/Pixl";
 import { useListItems, type Item } from "@/lib/useListItems";
-import { COPY, quickWinSort, type ListType } from "@/lib/listTypes";
+import { COPY, attrLabels, quickWinSort, type ListType } from "@/lib/listTypes";
 
 type ListSummary = {
   id: string;
@@ -46,6 +48,8 @@ export default function SimpleList({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const copy = COPY[type];
+  // "Effort" on a to-do reads as "Cost" on a wishlist — keep the hint in sync.
+  const effortWord = attrLabels(type).effort.toLowerCase();
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -109,9 +113,16 @@ export default function SimpleList({
       </form>
 
       {unchecked.length === 0 && checked.length === 0 && (
-        <p className="t-small py-12 text-center text-[var(--fg-muted)]">
-          {copy.emptyState}
-        </p>
+        <div className="flex flex-col items-center gap-3 py-12 text-[var(--fg-muted)]">
+          <Pixl motion="wave" size={48} title="Pixl, waving" />
+          <p className="t-small text-center">{copy.emptyState}</p>
+        </div>
+      )}
+
+      {activeItems.length > 1 && (
+        <Hint motion="idle" className="mt-1">
+          ordered by quick wins — high importance, low {effortWord} first
+        </Hint>
       )}
 
       <ul className="mt-1 flex flex-col">
@@ -140,6 +151,9 @@ export default function SimpleList({
               {copy.clearLabel}
             </button>
           </div>
+          <Hint motion="sleep" className="mt-1.5">
+            kept here until you tap {copy.clearLabel}
+          </Hint>
           <ul className="flex flex-col">
             {checked.map((item) => (
               <ItemRow

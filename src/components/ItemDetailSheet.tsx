@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Drawer from "@/components/Drawer";
+import Hint from "@/components/Hint";
 import type { Item } from "@/lib/useListItems";
 import { type ListType, COPY, LEVELS, attrLabels } from "@/lib/listTypes";
 
@@ -136,6 +137,10 @@ export default function ItemDetailSheet({
           onChange={setEffort}
           variant="cobalt"
         />
+        <Hint motion="idle">
+          importance + {labels.effort.toLowerCase()} set the quick-wins order ·
+          tap a number again to clear
+        </Hint>
 
         {isWishlist && (
           <>

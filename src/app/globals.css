@@ -590,3 +590,231 @@ a:hover,
     animation: none;
   }
 }
+
+/* =========================================================
+   PIXL — the resident mascot. Pixel critter, currentColor
+   silhouette. Six steps(1) loops, no easing/blur (brand rule).
+   Geometry lives in src/components/Pixl.tsx.
+   ========================================================= */
+.pixl {
+  display: inline-block;
+  vertical-align: -0.15em;
+}
+.pixl-wrap {
+  position: relative;
+  display: inline-flex;
+  vertical-align: -0.15em;
+}
+.pixl-z {
+  position: absolute;
+  top: -0.2em;
+  right: -0.4em;
+  font-family: var(--ff-pixel);
+  line-height: 1;
+  color: currentColor;
+  opacity: 0;
+  pointer-events: none;
+  animation: pixl-zzz 1.8s steps(6) infinite;
+}
+
+/* IDLE — body hops 1px every ~2.4s */
+@keyframes pixl-hop {
+  0%,
+  80% {
+    transform: translateY(0);
+  }
+  86%,
+  94% {
+    transform: translateY(-1px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+.pixl-idle {
+  animation: pixl-hop 2.4s steps(1) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* BLINK — eyes fill shut briefly every ~4.8s (default open) */
+@keyframes pixl-blink {
+  0%,
+  92%,
+  96%,
+  100% {
+    opacity: 0;
+  }
+  93%,
+  95% {
+    opacity: 1;
+  }
+}
+.pixl-blink {
+  opacity: 0;
+  animation: pixl-blink 4.8s steps(1) infinite;
+}
+
+/* WALK — body bob + alternating outer toe, 0.55s 2-frame */
+@keyframes pixl-walk-bob {
+  0%,
+  49% {
+    transform: translateY(0);
+  }
+  50%,
+  100% {
+    transform: translateY(-1px);
+  }
+}
+.pixl-walk {
+  animation: pixl-walk-bob 0.55s steps(1) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes pixl-step-a {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes pixl-step-b {
+  0%,
+  49% {
+    opacity: 0;
+  }
+  50%,
+  100% {
+    opacity: 1;
+  }
+}
+.pixl-foot-a {
+  opacity: 1;
+  animation: pixl-step-a 0.55s steps(1) infinite;
+}
+.pixl-foot-b {
+  opacity: 0;
+  animation: pixl-step-b 0.55s steps(1) infinite;
+}
+
+/* WAVE — raised hand toggles between two cells, 0.55s */
+@keyframes pixl-wave-a {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes pixl-wave-b {
+  0%,
+  49% {
+    opacity: 0;
+  }
+  50%,
+  100% {
+    opacity: 1;
+  }
+}
+.pixl-wave-a {
+  opacity: 1;
+  animation: pixl-wave-a 0.55s steps(1) infinite;
+}
+.pixl-wave-b {
+  opacity: 0;
+  animation: pixl-wave-b 0.55s steps(1) infinite;
+}
+
+/* JUMP — squat + leap + peak + land, 1.6s */
+@keyframes pixl-jump {
+  0%,
+  30% {
+    transform: translateY(0);
+  }
+  36% {
+    transform: translateY(1px);
+  }
+  44% {
+    transform: translateY(-1px);
+  }
+  56%,
+  74% {
+    transform: translateY(-3px);
+  }
+  84% {
+    transform: translateY(-1px);
+  }
+  94% {
+    transform: translateY(1px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+.pixl-jump {
+  animation: pixl-jump 1.6s steps(1) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* DANCE — wobble L/R while bobbing, 1.0s */
+@keyframes pixl-dance {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-1px, -1px);
+  }
+  50% {
+    transform: translate(0, 0);
+  }
+  75% {
+    transform: translate(1px, -1px);
+  }
+}
+.pixl-dance {
+  animation: pixl-dance 1s steps(1) infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* SLEEP — the "z" rises and fades */
+@keyframes pixl-zzz {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0.5em);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(0, 0.2em);
+  }
+  70% {
+    opacity: 1;
+    transform: translate(0.5em, -0.6em);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(0.5em, -0.6em);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pixl-idle,
+  .pixl-walk,
+  .pixl-jump,
+  .pixl-dance,
+  .pixl-blink,
+  .pixl-foot-a,
+  .pixl-foot-b,
+  .pixl-wave-a,
+  .pixl-wave-b,
+  .pixl-z {
+    animation: none;
+  }
+}

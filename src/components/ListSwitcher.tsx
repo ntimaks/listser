@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { createList, deleteList } from "@/app/actions";
 import Drawer from "@/components/Drawer";
+import Hint from "@/components/Hint";
 import { COPY, LIST_TYPES, type ListType } from "@/lib/listTypes";
 
 type ListSummary = {
@@ -233,6 +234,9 @@ export default function ListSwitcher({
                       </button>
                     ))}
                   </div>
+                  <Hint motion="idle" className="px-0">
+                    GRO sorts by aisle · TODO &amp; WISH rank by priority
+                  </Hint>
 
                   <input
                     name="name"

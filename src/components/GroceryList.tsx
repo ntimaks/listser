@@ -5,6 +5,8 @@ import { createTemplate, deleteTemplate } from "@/app/actions";
 import ListHeader from "@/components/ListHeader";
 import ItemRow from "@/components/ItemRow";
 import Drawer from "@/components/Drawer";
+import Hint from "@/components/Hint";
+import Pixl from "@/components/Pixl";
 import { useListItems, makeId, type Item } from "@/lib/useListItems";
 import {
   groupForStore,
@@ -238,26 +240,37 @@ export default function GroceryList({
           </button>
         </div>
         {suggestions.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {suggestions.map((s) => (
-              <button
-                key={s.name_key}
-                type="button"
-                onClick={() => addItem(s.name)}
-                className="btn btn-sm btn-ghost"
-                aria-label={`Add ${s.name}`}
-              >
-                + {s.name}
-              </button>
-            ))}
-          </div>
+          <>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {suggestions.map((s) => (
+                <button
+                  key={s.name_key}
+                  type="button"
+                  onClick={() => addItem(s.name)}
+                  className="btn btn-sm btn-ghost"
+                  aria-label={`Add ${s.name}`}
+                >
+                  + {s.name}
+                </button>
+              ))}
+            </div>
+            <Hint motion="wave" className="mt-1.5">
+              your most-bought items — tap to add
+            </Hint>
+          </>
         )}
       </form>
 
       {unchecked.length === 0 && checked.length === 0 && (
-        <p className="t-small py-12 text-center text-[var(--fg-muted)]">
-          {COPY.grocery.emptyState}
-        </p>
+        <div className="flex flex-col items-center gap-3 py-12 text-[var(--fg-muted)]">
+          <Pixl motion="sleep" size={48} title="Pixl, asleep" />
+          <p className="t-small text-center">{COPY.grocery.emptyState}</p>
+        </div>
+      )}
+      {unchecked.length > 0 && groups.length > 1 && (
+        <Hint motion="idle" className="mt-3">
+          auto-sorted by aisle — it learns your store each trip
+        </Hint>
       )}
       {groups.map((group, gi) => (
         <section key={group.category} className="mt-4 first:mt-1">
@@ -291,6 +304,9 @@ export default function GroceryList({
               [DONE]
             </button>
           </div>
+          <Hint motion="jump" className="mt-1.5">
+            [DONE] banks your aisle order, then clears the cart
+          </Hint>
           <ul className="flex flex-col">
             {checked.map((item) => (
               <ItemRow
@@ -320,6 +336,9 @@ export default function GroceryList({
         title="Templates"
         code="[TPL]"
       >
+        <Hint motion="idle" className="mb-3">
+          save a set of items once, re-add them all in one tap
+        </Hint>
         {templates.length === 0 ? (
           <p className="t-small py-4 text-center text-[var(--fg-muted)]">
             {"// "}no templates yet — save your current list to reuse it later.
