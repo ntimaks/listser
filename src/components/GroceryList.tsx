@@ -133,6 +133,7 @@ export default function GroceryList({
       notes: null,
       importance: null,
       effort: null,
+      parent_item_id: null,
     }));
     setItems((prev) => [...prev, ...optimisticItems]);
 

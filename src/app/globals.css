@@ -501,6 +501,65 @@ hr,
 }
 
 /* =========================================================
+   SUBTASKS — nested under a to-do parent. A left connector
+   hairline groups them; the parent row carries a pixel
+   progress bar + counter, and Pixl leaps when they all land.
+   ========================================================= */
+.task-group {
+  list-style: none;
+}
+/* indent the subtask + add-subtask rows and draw the connector */
+.subtask-row {
+  margin-left: 1.45rem;
+  padding-left: 0.7rem;
+  border-left: var(--bw-1) solid var(--ink-5);
+}
+.subtask-row .checkbox {
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+}
+/* quiet inline "+ subtask" input */
+.subtask-input {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--fg);
+}
+.subtask-input::placeholder {
+  color: var(--fg-disabled);
+}
+.subtask-input:focus {
+  outline: none;
+}
+
+/* pixel progress bar on a parent row — chunky steps() fill */
+.progress {
+  height: 6px;
+  width: 100%;
+  background: var(--paper-2);
+  border: var(--bw-1) solid var(--ink-5);
+}
+.progress-fill {
+  height: 100%;
+  background: var(--acid);
+  transition: width var(--dur-base) var(--ease-step);
+}
+
+/* Pixl celebration overlay when every subtask is done */
+.celebrate {
+  position: absolute;
+  top: 0.5rem;
+  right: 2.4rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--ink-0);
+  pointer-events: none;
+}
+
+/* =========================================================
    LINKS — ink underline → acid fill on hover
    ========================================================= */
 a,

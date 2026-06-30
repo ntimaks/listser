@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import ListHeader from "@/components/ListHeader";
 import ItemRow from "@/components/ItemRow";
+import SubtaskGroup from "@/components/SubtaskGroup";
 import ItemDetailSheet from "@/components/ItemDetailSheet";
 import Hint from "@/components/Hint";
 import Pixl from "@/components/Pixl";
@@ -41,11 +42,29 @@ export default function SimpleList({
   userId,
   initialItems,
 }: Props) {
-  const { items, addItem, toggleItem, updateItem, deleteItem, deleteItems, moveItem } =
-    useListItems(listId, userId, initialItems);
+  const {
+    items,
+    addItem,
+    toggleItem,
+    setChecked,
+    updateItem,
+    deleteItem,
+    deleteItems,
+    moveItem,
+  } = useListItems(listId, userId, initialItems);
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState<Item | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // The Pixl celebration lives here (not in SubtaskGroup) so it survives the
+  // parent moving to the DONE section when its last subtask completes.
+  const [celebratingId, setCelebratingId] = useState<string | null>(null);
+  const celebrateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function triggerCelebrate(parentId: string) {
+    setCelebratingId(parentId);
+    if (celebrateTimer.current) clearTimeout(celebrateTimer.current);
+    celebrateTimer.current = setTimeout(() => setCelebratingId(null), 1800);
+  }
 
   const copy = COPY[type];
   // "Effort" on a to-do reads as "Cost" on a wishlist — keep the hint in sync.
@@ -60,8 +79,23 @@ export default function SimpleList({
     await addItem(name);
   }
 
-  const unchecked = items.filter((i) => !i.checked_at);
-  const checked = items.filter((i) => i.checked_at);
+  // Subtasks (todo only) nest under their parent, so the list sections work on
+  // top-level items; each parent's children are looked up by id. Wishlist items
+  // are always top-level, so this is a no-op there.
+  const childrenByParent = useMemo(() => {
+    const m = new Map<string, Item[]>();
+    for (const i of items) {
+      if (i.parent_item_id == null) continue;
+      const arr = m.get(i.parent_item_id);
+      if (arr) arr.push(i);
+      else m.set(i.parent_item_id, [i]);
+    }
+    return m;
+  }, [items]);
+
+  const topLevel = items.filter((i) => i.parent_item_id == null);
+  const unchecked = topLevel.filter((i) => !i.checked_at);
+  const checked = topLevel.filter((i) => i.checked_at);
 
   // "Quick wins": high-importance, low-effort items float to the top (for both
   // to-do and wishlist). Unrated items sink to the bottom.
@@ -71,6 +105,35 @@ export default function SimpleList({
   const editingItem = editing
     ? items.find((i) => i.id === editing.id) ?? null
     : null;
+
+  // To-do rows nest their subtasks (and the auto-complete + celebration); other
+  // types render a flat row. `showAdd` hides the "+ subtask" input in the DONE
+  // section so it stays tidy.
+  const renderTopLevel = (item: Item, showAdd: boolean) =>
+    type === "todo" ? (
+      <SubtaskGroup
+        key={item.id}
+        parent={item}
+        subtasks={childrenByParent.get(item.id) ?? []}
+        type={type}
+        addItem={addItem}
+        setChecked={setChecked}
+        onDelete={deleteItem}
+        onOpen={setEditing}
+        celebrate={celebratingId === item.id}
+        onCelebrate={triggerCelebrate}
+        showAdd={showAdd}
+      />
+    ) : (
+      <ItemRow
+        key={item.id}
+        item={item}
+        type={type}
+        onToggle={toggleItem}
+        onDelete={deleteItem}
+        onOpen={setEditing}
+      />
+    );
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pb-24">
@@ -126,16 +189,7 @@ export default function SimpleList({
       )}
 
       <ul className="mt-1 flex flex-col">
-        {activeItems.map((item) => (
-          <ItemRow
-            key={item.id}
-            item={item}
-            type={type}
-            onToggle={toggleItem}
-            onDelete={deleteItem}
-            onOpen={setEditing}
-          />
-        ))}
+        {activeItems.map((item) => renderTopLevel(item, true))}
       </ul>
 
       {checked.length > 0 && (
@@ -155,16 +209,7 @@ export default function SimpleList({
             kept here until you tap {copy.clearLabel}
           </Hint>
           <ul className="flex flex-col">
-            {checked.map((item) => (
-              <ItemRow
-                key={item.id}
-                item={item}
-                type={type}
-                onToggle={toggleItem}
-                onDelete={deleteItem}
-                onOpen={setEditing}
-              />
-            ))}
+            {checked.map((item) => renderTopLevel(item, false))}
           </ul>
         </section>
       )}

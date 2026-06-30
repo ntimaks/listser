@@ -20,13 +20,21 @@ export type Item = {
   // 1–5 rankable attributes added in 0007, shared by todo + wishlist.
   importance: number | null;
   effort: number | null;
+  // 0010: non-null on a subtask, pointing at its parent list_item (todo only).
+  parent_item_id: string | null;
 };
 
-// Fields a caller may set when creating an item (wishlist add, etc.).
+// Fields a caller may set when creating an item (wishlist add, subtask, etc.).
 export type ItemExtras = Partial<
   Pick<
     Item,
-    "priority" | "price_cents" | "url" | "notes" | "importance" | "effort"
+    | "priority"
+    | "price_cents"
+    | "url"
+    | "notes"
+    | "importance"
+    | "effort"
+    | "parent_item_id"
   >
 >;
 
@@ -50,7 +58,13 @@ export function stamp(iso: string) {
 
 function blankExtras(): Pick<
   Item,
-  "priority" | "price_cents" | "url" | "notes" | "importance" | "effort"
+  | "priority"
+  | "price_cents"
+  | "url"
+  | "notes"
+  | "importance"
+  | "effort"
+  | "parent_item_id"
 > {
   return {
     priority: null,
@@ -59,6 +73,7 @@ function blankExtras(): Pick<
     notes: null,
     importance: null,
     effort: null,
+    parent_item_id: null,
   };
 }
 
@@ -98,7 +113,8 @@ export function useListItems(
                 (i) =>
                   i.id.startsWith("temp-") &&
                   i.name === row.name &&
-                  i.created_by === row.created_by
+                  i.created_by === row.created_by &&
+                  i.parent_item_id === row.parent_item_id
               );
               if (tempIdx !== -1) {
                 const next = [...prev];
@@ -178,6 +194,50 @@ export function useListItems(
     if (error) setItems(before);
   }
 
+  // Bulk checked-state writer for to-do subtasks. The caller (SubtaskGroup)
+  // computes the full set of rows to flip so the parent/subtask invariant —
+  // "a parent is checked iff it has subtasks and all are checked" — is applied
+  // atomically: a leaf toggle may also flip its parent, a parent toggle flips
+  // all its children, and reopening a parent flips just the parent. Optimistic
+  // with rollback; checked/unchecked rows are grouped into one update each.
+  async function setChecked(updates: { id: string; checked: boolean }[]) {
+    const real = updates.filter((u) => !u.id.startsWith("temp-"));
+    if (real.length === 0) return;
+
+    const now = new Date().toISOString();
+    const byId = new Map(real.map((u) => [u.id, u.checked]));
+    const before = items;
+    setItems((prev) =>
+      prev.map((i) =>
+        byId.has(i.id)
+          ? {
+              ...i,
+              checked_at: byId.get(i.id) ? now : null,
+              checked_by: byId.get(i.id) ? userId : null,
+            }
+          : i
+      )
+    );
+
+    const checkedIds = real.filter((u) => u.checked).map((u) => u.id);
+    const uncheckedIds = real.filter((u) => !u.checked).map((u) => u.id);
+    const results = await Promise.all([
+      checkedIds.length
+        ? supabase
+            .from("list_items")
+            .update({ checked_at: now, checked_by: userId })
+            .in("id", checkedIds)
+        : Promise.resolve({ error: null }),
+      uncheckedIds.length
+        ? supabase
+            .from("list_items")
+            .update({ checked_at: null, checked_by: null })
+            .in("id", uncheckedIds)
+        : Promise.resolve({ error: null }),
+    ]);
+    if (results.some((r) => r.error)) setItems(before);
+  }
+
   // Edit an item's fields (name / priority / price / url / notes) from the
   // detail sheet. Optimistic with rollback.
   async function updateItem(id: string, patch: Partial<Item>) {
@@ -192,11 +252,15 @@ export function useListItems(
     if (error) setItems(before);
   }
 
-  // Single-item delete (the ✕ on a row).
+  // Single-item delete (the ✕ on a row). Deleting a parent drops its subtasks
+  // too: the DB cascade handles the server, and we mirror it locally so the
+  // children don't flash before their realtime DELETE events arrive.
   async function deleteItem(item: Item) {
     if (item.id.startsWith("temp-")) return;
     const before = items;
-    setItems((prev) => prev.filter((i) => i.id !== item.id));
+    setItems((prev) =>
+      prev.filter((i) => i.id !== item.id && i.parent_item_id !== item.id)
+    );
     const { error } = await supabase
       .from("list_items")
       .delete()
@@ -205,12 +269,20 @@ export function useListItems(
   }
 
   // Bulk delete — used by "clear completed" / "clear acquired" (todo/wishlist).
-  // Grocery clears via finishTrip/record_trip instead.
+  // Grocery clears via finishTrip/record_trip instead. Children of a cleared
+  // parent go with it (DB cascade) so mirror that in the optimistic filter.
   async function deleteItems(ids: string[]) {
     const realIds = ids.filter((id) => !id.startsWith("temp-"));
     if (realIds.length === 0) return;
+    const idSet = new Set(realIds);
     const before = items;
-    setItems((prev) => prev.filter((i) => !realIds.includes(i.id)));
+    setItems((prev) =>
+      prev.filter(
+        (i) =>
+          !idSet.has(i.id) &&
+          !(i.parent_item_id != null && idSet.has(i.parent_item_id))
+      )
+    );
 
     const { error } = await supabase
       .from("list_items")
@@ -257,6 +329,7 @@ export function useListItems(
     setItems,
     addItem,
     toggleItem,
+    setChecked,
     updateItem,
     deleteItem,
     deleteItems,

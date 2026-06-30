@@ -12,19 +12,25 @@ import {
 // A single item row in the NIKOLASS terminal style. Grocery keeps main's
 // behavior (row = toggle, ✕ = delete). Todo/wishlist (when `onOpen` is given)
 // split the row: checkbox toggles, the name area opens the detail sheet, ✕
-// deletes — and wishlist rows show priority/price/link inline.
+// deletes — and wishlist rows show priority/price/link inline. `isSubtask`
+// renders an indented, lean variant (toggle + name + delete, no detail/meta);
+// `progress` shows a pixel progress bar + done/total counter on a parent row.
 export default function ItemRow({
   item,
   type,
   onToggle,
   onDelete,
   onOpen,
+  isSubtask = false,
+  progress,
 }: {
   item: Item;
   type: ListType;
   onToggle: (item: Item) => void;
   onDelete: (item: Item) => void;
   onOpen?: (item: Item) => void;
+  isSubtask?: boolean;
+  progress?: { done: number; total: number };
 }) {
   const checked = Boolean(item.checked_at);
   const pending = item.id.startsWith("temp-");
@@ -48,6 +54,28 @@ export default function ItemRow({
     </button>
   );
 
+  // Subtask: indented and lean — the whole name area toggles (a big, forgiving
+  // tap target for fast check-offs), ✕ deletes. No detail sheet, no meta.
+  if (isSubtask) {
+    return (
+      <li
+        className={`subtask-row flex items-center gap-2 ${
+          pending ? "opacity-60" : ""
+        }`}
+      >
+        <button
+          onClick={() => onToggle(item)}
+          className="flex min-w-0 flex-1 items-center gap-2 py-2.5 pr-1 text-left active:bg-[var(--paper-2)]"
+          aria-label={checked ? "Mark not done" : "Mark done"}
+        >
+          {checkbox}
+          <span className={`${nameClass} block`}>{item.name}</span>
+        </button>
+        {deleteButton}
+      </li>
+    );
+  }
+
   // Grocery: the whole row toggles (unchanged from main).
   if (!onOpen) {
     return (
@@ -69,6 +97,8 @@ export default function ItemRow({
 
   // Todo / wishlist: checkbox toggles, name area opens detail, ✕ deletes.
   const labels = attrLabels(type);
+  // A parent row with subtasks; null narrows the bar/counter out otherwise.
+  const prog = progress && progress.total > 0 ? progress : null;
   const price = type === "wishlist" ? formatPrice(item.price_cents) : null;
   const showMeta =
     item.importance != null ||
@@ -115,10 +145,27 @@ export default function ItemRow({
               )}
             </span>
           )}
+          {prog && (
+            <span aria-hidden className="progress mt-1.5 block">
+              <span
+                className="progress-fill block"
+                style={{ width: `${(prog.done / prog.total) * 100}%` }}
+              />
+            </span>
+          )}
         </span>
-        <span aria-hidden className="shrink-0 text-[var(--fg-disabled)]">
-          ›
-        </span>
+        {prog ? (
+          <span
+            className="t-pixel shrink-0 leading-none text-[var(--fg-2)]"
+            aria-label={`${prog.done} of ${prog.total} done`}
+          >
+            {prog.done}/{prog.total}
+          </span>
+        ) : (
+          <span aria-hidden className="shrink-0 text-[var(--fg-disabled)]">
+            ›
+          </span>
+        )}
       </button>
       {deleteButton}
     </li>
