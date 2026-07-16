@@ -190,9 +190,14 @@ export default function GroceryList({
 
   // Buy-again: the list's most-bought items (ranked server-side from the
   // purchase log) that aren't already on the list — in the cart or not.
+  // Require at least two purchases so genuine staples surface instead of
+  // one-off recent buys (which, ranked by recency, just look like "latest
+  // purchases"). buyAgain is already ordered most-bought first.
   const suggestions = useMemo(() => {
     const onList = new Set(items.map((i) => normalizeName(i.name)));
-    return buyAgain.filter((b) => !onList.has(b.name_key)).slice(0, 6);
+    return buyAgain
+      .filter((b) => b.buy_count >= 2 && !onList.has(b.name_key))
+      .slice(0, 6);
   }, [buyAgain, items]);
 
   function closeTemplates() {

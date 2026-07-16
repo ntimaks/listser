@@ -40,9 +40,13 @@ export default function ItemRow({
       {checked ? "✓" : ""}
     </span>
   );
-  const nameClass = `t-body min-w-0 flex-1 truncate ${
-    checked ? "text-[var(--fg-muted)] line-through" : "text-[var(--fg)]"
-  }`;
+  const nameColor = checked
+    ? "text-[var(--fg-muted)] line-through"
+    : "text-[var(--fg)]";
+  const nameClass = `t-body min-w-0 flex-1 truncate ${nameColor}`;
+  // Grocery rows have no detail sheet (tapping toggles), so a truncated name is
+  // unrecoverable. Wrap instead — break-words also splits over-long tokens.
+  const groceryNameClass = `t-body min-w-0 flex-1 break-words ${nameColor}`;
   const deleteButton = (
     <button
       onClick={() => onDelete(item)}
@@ -85,7 +89,7 @@ export default function ItemRow({
           className={`item-row ${pending ? "is-pending" : ""}`}
         >
           {checkbox}
-          <span className={nameClass}>{item.name}</span>
+          <span className={groceryNameClass}>{item.name}</span>
           <span className="t-meta shrink-0 text-[var(--fg-disabled)]">
             {stamp(item.created_at)}
           </span>
