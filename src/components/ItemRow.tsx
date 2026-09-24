@@ -108,7 +108,8 @@ export default function ItemRow({
     item.importance != null ||
     item.effort != null ||
     price ||
-    (type === "wishlist" && item.url);
+    (type === "wishlist" && item.url) ||
+    item.notes;
 
   return (
     <li
@@ -146,6 +147,9 @@ export default function ItemRow({
               )}
               {item.url && (
                 <span className="t-meta text-[var(--cobalt)]">LINK</span>
+              )}
+              {item.notes && (
+                <span className="t-meta text-[var(--fg-2)]">NOTE</span>
               )}
             </span>
           )}
