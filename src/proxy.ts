@@ -2,6 +2,14 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function proxy(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
+
+  // The MCP endpoint and OAuth metadata use Bearer tokens, not session
+  // cookies, and must answer with their own 401s rather than a login redirect.
+  if (pathname.startsWith("/api/mcp") || pathname.startsWith("/.well-known/")) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -31,13 +39,15 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
   const isPublic = pathname.startsWith("/login") || pathname.startsWith("/auth");
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("next", pathname);
+    // Keep the query string so e.g. /oauth/consent?authorization_id=… survives
+    // the sign-in round-trip.
+    url.search = "";
+    url.searchParams.set("next", pathname + search);
     return NextResponse.redirect(url);
   }
 

@@ -9,11 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@modelcontextprotocol/server": "^2.1.0",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.1",
+    "mcp-handler": "^2.2.0",
     "next": "^16.2.7",
     "react": "19.2.7",
-    "react-dom": "19.2.7"
+    "react-dom": "19.2.7",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
