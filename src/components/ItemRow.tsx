@@ -105,10 +105,7 @@ export default function ItemRow({
   const prog = progress && progress.total > 0 ? progress : null;
   const price = type === "wishlist" ? formatPrice(item.price_cents) : null;
   const showMeta =
-    item.importance != null ||
-    item.effort != null ||
-    price ||
-    (type === "wishlist" && item.url);
+    item.importance != null || item.effort != null || price;
 
   return (
     <li
@@ -134,6 +131,11 @@ export default function ItemRow({
               {item.notes}
             </span>
           )}
+          {item.url && (
+            <span className="t-meta mt-0.5 block truncate text-[var(--cobalt)]">
+              {item.url}
+            </span>
+          )}
           {showMeta && (
             <span className="mt-1 flex flex-wrap items-center gap-2">
               {item.importance != null && (
@@ -148,9 +150,6 @@ export default function ItemRow({
               )}
               {price && (
                 <span className="t-meta text-[var(--fg-2)]">{price}</span>
-              )}
-              {item.url && (
-                <span className="t-meta text-[var(--cobalt)]">LINK</span>
               )}
             </span>
           )}
