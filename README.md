@@ -60,6 +60,52 @@ them up and drops them straight into the shared list.
   built-in order, so after a few trips the list mirrors your actual store.
   Zero configuration.
 
+## MCP server
+
+Listser exposes an [MCP](https://modelcontextprotocol.io) server at
+`/api/mcp` so AI assistants (Claude, Cursor, …) can read and manage your
+households, lists, items and templates: "add milk and eggs to groceries",
+"what's left on my to-do?", "finish the trip".
+
+Auth uses Supabase's OAuth 2.1 server. The assistant signs you in with your
+normal Listser account, and its token is an ordinary user JWT, so every tool
+goes through the same RLS policies as the app.
+
+### Enable it (once per Supabase project)
+
+In the Supabase dashboard, go to **Authentication → OAuth Server**:
+
+1. Enable the OAuth 2.1 server.
+2. Set the **authorization path** to `/oauth/consent`. This is resolved
+   against the Site URL from step 2 of Setup.
+3. Enable **dynamic client registration** so MCP clients can register
+   themselves.
+
+### Connect a client
+
+- **Claude (claude.ai / desktop):** Settings → Connectors → Add custom
+  connector → `https://<your-domain>/api/mcp`.
+- **Claude Code:** `claude mcp add --transport http listser https://<your-domain>/api/mcp`,
+  then run `/mcp` to sign in.
+
+The client opens a browser, you sign in with Google if needed, and you
+approve the request on `/oauth/consent`.
+
+### Tools
+
+| Area | Tools |
+|---|---|
+| Households | `list_households`, `create_household`, `join_household` |
+| Lists | `list_lists`, `create_list`, `delete_list` |
+| Items | `get_items`, `add_items`, `update_item`, `set_items_checked`, `delete_items` |
+| Grocery | `finish_trip` (runs `record_trip`), `buy_again` |
+| Templates | `list_templates`, `create_template`, `apply_template`, `delete_template` |
+
+Code: `src/app/api/mcp/route.ts` (endpoint),
+`src/lib/mcp/tools.ts` (tools), `src/lib/supabase/token.ts` (token
+verification), `src/app/.well-known/oauth-protected-resource/route.ts`
+(discovery) and `src/app/oauth/consent/` (consent screen).
+
 ## Deploying
 
 Deploy to Vercel, set the two env vars from `.env.example`, and update the
