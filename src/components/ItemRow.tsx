@@ -108,8 +108,7 @@ export default function ItemRow({
     item.importance != null ||
     item.effort != null ||
     price ||
-    (type === "wishlist" && item.url) ||
-    item.notes;
+    (type === "wishlist" && item.url);
 
   return (
     <li
@@ -130,6 +129,11 @@ export default function ItemRow({
       >
         <span className="min-w-0 flex-1">
           <span className={`${nameClass} block`}>{item.name}</span>
+          {item.notes && (
+            <span className="t-meta mt-0.5 block truncate text-[var(--fg-muted)]">
+              {item.notes}
+            </span>
+          )}
           {showMeta && (
             <span className="mt-1 flex flex-wrap items-center gap-2">
               {item.importance != null && (
@@ -147,9 +151,6 @@ export default function ItemRow({
               )}
               {item.url && (
                 <span className="t-meta text-[var(--cobalt)]">LINK</span>
-              )}
-              {item.notes && (
-                <span className="t-meta text-[var(--fg-2)]">NOTE</span>
               )}
             </span>
           )}
