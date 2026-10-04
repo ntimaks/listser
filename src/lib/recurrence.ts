@@ -51,8 +51,18 @@ export function addDays(date: string, days: number): string {
   return fromDayNumber(toDayNumber(date) + days);
 }
 
-// The calendar date of a Date in the runtime's local timezone.
-export function localDate(d: Date = new Date()): string {
+// The calendar date of a Date in `timeZone` (an IANA name), or in the runtime's
+// local timezone when none is given.
+export function localDate(d: Date = new Date(), timeZone?: string): string {
+  if (timeZone) {
+    // en-CA formats as YYYY-MM-DD.
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+  }
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }

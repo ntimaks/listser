@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signOut } from "@/app/actions";
 import Drawer from "@/components/Drawer";
 import ListSwitcher from "@/components/ListSwitcher";
 import Pixl from "@/components/Pixl";
+import SettingsDrawer from "@/components/SettingsDrawer";
 import ThemeToggle from "@/components/ThemeToggle";
+import { createClient } from "@/lib/supabase/client";
+import { detectTimeZone } from "@/lib/reminders";
 import { stamp } from "@/lib/useListItems";
 import type { ListType } from "@/lib/listTypes";
 
@@ -23,7 +26,8 @@ const BAND_LABEL: Record<ListType, string> = {
 };
 
 // Logbook header band shared by every list view: the panel-head strip, the list
-// switcher and household name, plus a menu sheet with invite, theme, sign-out.
+// switcher and household name, plus a menu sheet with invite, reminder
+// settings, theme, sign-out.
 export default function ListHeader({
   lists,
   activeListId,
@@ -33,6 +37,7 @@ export default function ListHeader({
   householdId,
   householdName,
   inviteCode,
+  userId,
   itemCount,
 }: {
   lists: ListSummary[];
@@ -43,10 +48,25 @@ export default function ListHeader({
   householdId: string;
   householdName: string;
   inviteCode: string;
+  userId: string;
   itemCount: number;
 }) {
   const [invited, setInvited] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Give every user a settings row with their browser's timezone, so reminders
+  // go out at the right local time even if they never open the settings.
+  // Leaves an existing row alone.
+  useEffect(() => {
+    createClient()
+      .from("user_settings")
+      .upsert(
+        { user_id: userId, timezone: detectTimeZone() },
+        { onConflict: "user_id", ignoreDuplicates: true }
+      )
+      .then(() => {});
+  }, [userId]);
 
   async function shareInvite() {
     const url = `${window.location.origin}/join/${inviteCode}`;
@@ -117,6 +137,19 @@ export default function ListHeader({
           </section>
 
           <section className="flex flex-col gap-2">
+            <p className="t-meta">Reminders</p>
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                setSettingsOpen(true);
+              }}
+              className="btn w-full"
+            >
+              [EMAIL REMINDERS]
+            </button>
+          </section>
+
+          <section className="flex flex-col gap-2">
             <p className="t-meta">Theme</p>
             <ThemeToggle />
           </section>
@@ -128,6 +161,10 @@ export default function ListHeader({
           </form>
         </div>
       </Drawer>
+
+      {settingsOpen && (
+        <SettingsDrawer userId={userId} onClose={() => setSettingsOpen(false)} />
+      )}
     </header>
   );
 }

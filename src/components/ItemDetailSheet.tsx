@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Drawer from "@/components/Drawer";
 import Hint from "@/components/Hint";
+import Segmented from "@/components/Segmented";
 import type { Item } from "@/lib/useListItems";
 import { type ListType, COPY, LEVELS, attrLabels } from "@/lib/listTypes";
 import type { RepeatFrom, RepeatUnit } from "@/lib/recurrence";
+import type { Member } from "@/lib/reminders";
+import { createClient } from "@/lib/supabase/client";
 
 type ListSummary = { id: string; name: string; type: ListType };
 
@@ -44,41 +47,10 @@ function LevelPicker({
   );
 }
 
-// A row of mutually exclusive options, styled like LevelPicker.
-function Segmented<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: T;
-  options: { value: T; label: string }[];
-  onChange: (v: T) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="t-meta">{label}</span>
-      <div className="flex gap-1">
-        {options.map((o) => (
-          <button
-            key={o.value}
-            type="button"
-            onClick={() => onChange(o.value)}
-            className={`btn btn-sm flex-1 ${value === o.value ? "btn-cobalt" : ""}`}
-            aria-pressed={value === o.value}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // Item editor built on the shared Drawer. Importance + Effort/Cost (1–5) apply
 // to both todo and wishlist; wishlist additionally gets an exact € price and a
-// link, todo a due date and repeat. Hosts the "Move to…" promotion picker.
+// link, todo a due date, repeat and who to remind. Hosts the "Move to…"
+// promotion picker.
 export default function ItemDetailSheet({
   item,
   type,
@@ -88,15 +60,20 @@ export default function ItemDetailSheet({
   onSave,
   onDelete,
   onMove,
+  members = [],
+  userId,
 }: {
   item: Item;
   type: ListType;
   lists: ListSummary[];
   currentListId: string;
   onClose: () => void;
-  onSave: (id: string, patch: Partial<Item>) => void;
+  // `remind` (todo with a due date only) replaces the task's recipients.
+  onSave: (id: string, patch: Partial<Item>, remind?: string[]) => void;
   onDelete: (item: Item) => void;
   onMove: (item: Item, targetListId: string) => void;
+  members?: Member[];
+  userId?: string;
 }) {
   const [name, setName] = useState(item.name);
   const [notes, setNotes] = useState(item.notes ?? "");
@@ -118,6 +95,35 @@ export default function ItemDetailSheet({
   const [repeatFrom, setRepeatFrom] = useState<RepeatFrom>(
     item.repeat_from ?? "schedule"
   );
+
+  // Who to remind. An undated task has nobody yet, so the picker starts from
+  // the whole household (the same default the database applies when a task
+  // first gets a date); a dated task loads its saved recipients. Null while
+  // loading.
+  const [initiallyDated] = useState(item.due_on != null);
+  const [remind, setRemind] = useState<string[] | null>(
+    initiallyDated ? null : members.map((m) => m.user_id)
+  );
+  useEffect(() => {
+    if (!initiallyDated) return;
+    let cancelled = false;
+    createClient()
+      .from("item_reminders")
+      .select("user_id")
+      .eq("item_id", item.id)
+      .then(({ data }) => {
+        if (!cancelled) setRemind((data ?? []).map((r) => r.user_id));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [item.id, initiallyDated]);
+
+  function toggleRemind(id: string) {
+    setRemind((r) =>
+      r && (r.includes(id) ? r.filter((x) => x !== id) : [...r, id])
+    );
+  }
 
   const isWishlist = type === "wishlist";
   const isTodo = type === "todo";
@@ -156,7 +162,11 @@ export default function ItemDetailSheet({
           ? Math.round(parsed * 100)
           : null;
     }
-    onSave(item.id, patch);
+    onSave(
+      item.id,
+      patch,
+      isTodo && dueOn && remind ? remind : undefined
+    );
     onClose();
   }
 
@@ -277,6 +287,51 @@ export default function ItemDetailSheet({
                         : "next one is counted from the day you check it off"}
                     </Hint>
                   </>
+                )}
+
+                {members.length > 0 && (
+                  <div className="flex flex-col gap-1">
+                    <span className="t-meta">Remind</span>
+                    {remind === null ? (
+                      <p className="t-meta py-2 text-[var(--fg-muted)]">
+                        loading…
+                      </p>
+                    ) : (
+                      <ul className="flex flex-col">
+                        {members.map((m) => {
+                          const on = remind.includes(m.user_id);
+                          return (
+                            <li key={m.user_id}>
+                              <button
+                                type="button"
+                                onClick={() => toggleRemind(m.user_id)}
+                                aria-pressed={on}
+                                className="flex w-full items-center gap-2 border-b border-[var(--ink-5)] px-1 py-2 text-left active:bg-[var(--paper-2)]"
+                              >
+                                <span
+                                  aria-hidden
+                                  className={`checkbox ${on ? "is-checked" : ""}`}
+                                >
+                                  {on ? "✓" : ""}
+                                </span>
+                                <span className="t-body min-w-0 flex-1 truncate">
+                                  {m.email}
+                                </span>
+                                {m.user_id === userId && (
+                                  <span className="t-meta shrink-0 text-[var(--fg-muted)]">
+                                    YOU
+                                  </span>
+                                )}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                    <Hint motion="idle">
+                      emailed on the due date, at each person&rsquo;s send time
+                    </Hint>
+                  </div>
                 )}
               </>
             )}
