@@ -7,6 +7,8 @@
    ========================================================= */
 
 :root {
+  color-scheme: light;
+
   /* ---------- PAPER / SURFACES — true neutral ---------- */
   --paper-0: #eeeeee; /* deepest paper, body bg */
   --paper-1: #e4e4e3; /* card / panel */
@@ -167,6 +169,7 @@
    DARK MODE — opt-in [data-theme="dark"] + auto via media query
    ========================================================= */
 [data-theme="dark"] {
+  color-scheme: dark;
   --paper-0: var(--dark-0);
   --paper-1: var(--dark-1);
   --paper-2: var(--dark-2);
@@ -186,6 +189,7 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --paper-0: var(--dark-0);
     --paper-1: var(--dark-1);
     --paper-2: var(--dark-2);
