@@ -3,11 +3,12 @@ import type { CallToolResult, McpServer, ServerContext } from "@modelcontextprot
 import { createTokenClient, type TokenClient } from "@/lib/supabase/token";
 import { LIST_TYPES } from "@/lib/listTypes";
 import { normalizeName } from "@/lib/categories";
+import { localDate, nextDue, planRollover, type ItemPatch } from "@/lib/recurrence";
 
 // Columns an MCP client sees for an item. Mirrors the Item type in
 // src/lib/useListItems.ts minus the legacy `priority` flag.
 const ITEM_COLUMNS =
-  "id, name, notes, url, price_cents, importance, effort, parent_item_id, created_at, checked_at";
+  "id, name, notes, url, price_cents, importance, effort, parent_item_id, due_on, repeat_every, repeat_unit, repeat_from, created_at, checked_at";
 
 type Session = { supabase: TokenClient; userId: string };
 
@@ -70,12 +71,58 @@ const itemFields = {
     .nullable()
     .optional()
     .describe("1 (easy/cheap) to 5 (hard/expensive). Reads as 'cost' on a wishlist."),
+  due_on: z.iso
+    .date()
+    .nullable()
+    .optional()
+    .describe("Due date, YYYY-MM-DD (top-level todo items). Clearing it also clears repeat."),
+  repeat: z
+    .object({
+      every: z.number().int().min(1).max(365),
+      unit: z.enum(["day", "week"]),
+      from: z
+        .enum(["schedule", "completion"])
+        .default("schedule")
+        .describe(
+          "schedule: keep to the calendar, skipping missed occurrences. completion: count from the day it was checked off."
+        ),
+    })
+    .nullable()
+    .optional()
+    .describe("Make a todo repeat (needs due_on). When checked off it comes back on its next date."),
 };
+
+type ItemFields = { due_on?: string | null; repeat?: RepeatInput | null };
+type RepeatInput = { every: number; unit: "day" | "week"; from: "schedule" | "completion" };
+
+// Map the `repeat` object onto its columns. A cleared due date takes the repeat
+// with it, since a repeat counts from the due date.
+function repeatColumns<T extends ItemFields>({ repeat, ...rest }: T) {
+  if (repeat === undefined && rest.due_on !== null) return rest;
+  return {
+    ...rest,
+    repeat_every: repeat?.every ?? null,
+    repeat_unit: repeat?.unit ?? null,
+    repeat_from: repeat?.from ?? null,
+  };
+}
+
+// Apply planRollover's writes (rows sharing a patch go out together).
+async function applyPatches(supabase: TokenClient, updates: ItemPatch[]) {
+  const groups = new Map<string, string[]>();
+  for (const u of updates) {
+    const key = JSON.stringify(u.patch);
+    groups.set(key, [...(groups.get(key) ?? []), u.id]);
+  }
+  for (const [key, ids] of groups) {
+    check(await supabase.from("list_items").update(JSON.parse(key)).in("id", ids));
+  }
+}
 
 const INSTRUCTIONS = `Listser is a shared household list app. A user belongs to one or more households; each household has lists of type "grocery", "todo" or "wishlist".
 - Start with list_households / list_lists to find ids.
 - Grocery: check items off while shopping, then call finish_trip to clear checked items and teach the app the store's aisle order. buy_again suggests frequently bought items.
-- Todo: items can have one level of subtasks (parent_item_id). Checked tasks stay as a record.
+- Todo: items can have one level of subtasks (parent_item_id). Checked tasks stay as a record. Top-level tasks can have a due_on date and a repeat; a checked repeating task comes back unchecked on its next_due_on.
 - Wishlist: price_cents, url, importance and effort (cost) describe wishes.
 - Templates are reusable grocery item sets per household.`;
 
@@ -200,7 +247,7 @@ export function registerTools(server: McpServer) {
     {
       title: "Get items",
       description:
-        "Get a list and its items. Subtasks are nested under their parent item. Checked items have a non-null checked_at.",
+        "Get a list and its items. Subtasks are nested under their parent item. Checked items have a non-null checked_at; a checked repeating task also has next_due_on, the date it comes back.",
       inputSchema: z.object({
         list_id: uuid,
         include_checked: z.boolean().default(true),
@@ -218,13 +265,28 @@ export function registerTools(server: McpServer) {
           "list not found"
         );
 
+        // Bring repeating tasks up to date first, as the app does on open.
+        // The server has no viewer timezone, so "today" is the server's date.
+        if (list.type === "todo") {
+          const all = must(
+            await supabase
+              .from("list_items")
+              .select("id, checked_at, parent_item_id, due_on, repeat_every, repeat_unit, repeat_from")
+              .eq("list_id", list_id)
+          );
+          await applyPatches(supabase, planRollover(all, localDate()));
+        }
+
         let query = supabase
           .from("list_items")
           .select(ITEM_COLUMNS)
           .eq("list_id", list_id)
           .order("created_at");
         if (!include_checked) query = query.is("checked_at", null);
-        const rows = must(await query);
+        const rows = must(await query).map((row) => {
+          const next = nextDue(row);
+          return next ? { ...row, next_due_on: next } : row;
+        });
 
         const byParent = new Map<string, typeof rows>();
         for (const row of rows) {
@@ -266,7 +328,9 @@ export function registerTools(server: McpServer) {
         must(
           await supabase
             .from("list_items")
-            .insert(items.map((item) => ({ ...item, list_id, created_by: userId })))
+            .insert(
+              items.map((item) => ({ ...repeatColumns(item), list_id, created_by: userId }))
+            )
             .select(ITEM_COLUMNS)
         )
       )
@@ -288,7 +352,7 @@ export function registerTools(server: McpServer) {
     ({ item_id, ...patch }, ctx) =>
       run(ctx, async ({ supabase }) => {
         const fields = Object.fromEntries(
-          Object.entries(patch).filter(([, value]) => value !== undefined)
+          Object.entries(repeatColumns(patch)).filter(([, value]) => value !== undefined)
         );
         if (Object.keys(fields).length === 0) throw new Error("nothing to update");
         const row = must(
