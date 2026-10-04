@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { signOut } from "@/app/actions";
 import Drawer from "@/components/Drawer";
 import Hint from "@/components/Hint";
 import Segmented from "@/components/Segmented";
@@ -14,8 +13,8 @@ import {
   type ReminderSettings,
 } from "@/lib/reminders";
 
-// The signed-in user's own reminder preferences, plus sign-out. Loads on open;
-// until a row exists the form shows the defaults with the browser's timezone.
+// The signed-in user's own reminder preferences. Loads on open; until a row
+// exists the form shows the defaults with the browser's timezone.
 export default function SettingsDrawer({
   userId,
   onClose,
@@ -63,7 +62,7 @@ export default function SettingsDrawer({
     setSettings((s) => (s ? { ...s, ...patch } : s));
 
   return (
-    <Drawer open onClose={onClose} title="Settings" code="[SET]">
+    <Drawer open onClose={onClose} title="Reminders" code="[REM]">
       {!settings ? (
         <p className="t-meta py-6 text-center text-[var(--fg-muted)]">
           loading…
@@ -117,15 +116,6 @@ export default function SettingsDrawer({
               ? "one email per task on its due date, for tasks that list you to remind"
               : "no reminder emails. tasks still keep you as a recipient"}
           </Hint>
-
-          <form
-            action={signOut}
-            className="border-t border-[var(--ink-5)] pt-3"
-          >
-            <button type="submit" className="btn btn-sm btn-ghost w-full">
-              Sign out
-            </button>
-          </form>
 
           {status === "error" && (
             <p className="t-meta text-[var(--term-red)]">

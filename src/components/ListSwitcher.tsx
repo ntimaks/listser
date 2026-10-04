@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import Link, { useLinkStatus } from "next/link";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
@@ -39,7 +39,7 @@ function NavHint() {
 function CreateSubmit() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" className="btn btn-sm btn-acid" disabled={pending}>
+    <button type="submit" className="btn btn-acid" disabled={pending}>
       {pending ? "ADDING…" : "ADD"}
     </button>
   );
@@ -67,16 +67,12 @@ export default function ListSwitcher({
     setNewType("grocery");
   }
 
-  // Escape closes the dropdown. While the confirm Drawer is open it owns Escape,
-  // so we stand down to avoid dismissing both at once.
-  useEffect(() => {
-    if (!open || confirmTarget) return;
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") close();
-    }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open, confirmTarget]);
+  // The delete confirm is a second Drawer stacked on this one; while it is up
+  // it owns Escape/backdrop, so the list sheet ignores close requests.
+  function closeSheet() {
+    if (confirmTarget) return;
+    close();
+  }
 
   function requestDelete(list: ListSummary) {
     setDeleteError(null);
@@ -125,16 +121,17 @@ export default function ListSwitcher({
   const canDelete = lists.length > 1;
 
   return (
-    <div className="relative">
+    <div className="min-w-0">
       <button
-        onClick={() => (open ? close() : setOpen(true))}
+        onClick={() => setOpen(true)}
         aria-expanded={open}
-        className="t-h3 flex items-center gap-1.5 uppercase leading-tight tracking-tight active:opacity-70"
+        aria-haspopup="dialog"
+        className="t-h3 flex min-h-11 w-full min-w-0 items-center gap-1.5 text-left uppercase leading-tight tracking-tight active:opacity-70"
       >
-        <span className="flex items-center gap-1.5">
-          <span className="t-stamp text-[var(--fg-muted)]">
-            {COPY[activeListType].tag}
-          </span>
+        <span className="t-stamp shrink-0 text-[var(--fg-muted)]">
+          {COPY[activeListType].tag}
+        </span>
+        <span className="min-w-0 truncate">
           {activeListName}
           {activeListStoreName && (
             <span className="ml-1.5 text-sm font-normal text-[var(--fg-disabled)]">
@@ -142,132 +139,125 @@ export default function ListSwitcher({
             </span>
           )}
         </span>
-        <span
-          aria-hidden
-          className={`text-xs text-[var(--fg-muted)] transition-transform ${
-            open ? "rotate-180" : ""
-          }`}
-        >
+        <span aria-hidden className="shrink-0 text-xs text-[var(--fg-muted)]">
           ▾
         </span>
       </button>
 
-      {open && (
-        <>
-          <div className="fixed inset-0 z-20" aria-hidden onClick={close} />
-          <div className="panel panel-stamp absolute left-0 top-full z-30 mt-2 w-[min(18rem,calc(100vw-2rem))]">
-            <div className="panel-head">
-              <span>[LISTS]</span>
-              <span>{String(lists.length).padStart(2, "0")}</span>
-            </div>
-            <ul className="flex flex-col">
-              {lists.map((list) => {
-                const active = list.id === activeListId;
-                return (
-                  <li key={list.id} className="flex items-center">
-                    <Link
-                      href={`/?list=${list.id}`}
-                      prefetch={false}
-                      // Switching to another list keeps the menu open so the
-                      // NavHint is visible; the page remount on arrival resets it.
-                      // Tapping the active list just closes the menu (no nav).
-                      onClick={() => {
-                        if (active) close();
-                      }}
-                      className={`flex flex-1 items-center gap-2 border-b border-[var(--ink-5)] px-3 py-2.5 text-[var(--fg)] no-underline hover:bg-[var(--paper-2)] hover:text-[var(--fg)] active:bg-[var(--paper-2)] ${
-                        active ? "font-bold" : ""
+      <Drawer
+        open={open}
+        onClose={closeSheet}
+        title="LISTS"
+        code={String(lists.length).padStart(2, "0")}
+      >
+        <div className="-mx-[var(--s-4)] -mt-[var(--s-4)]">
+          <ul className="flex flex-col">
+            {lists.map((list) => {
+              const active = list.id === activeListId;
+              return (
+                <li key={list.id} className="flex items-stretch">
+                  <Link
+                    href={`/?list=${list.id}`}
+                    prefetch={false}
+                    // Switching to another list keeps the menu open so the
+                    // NavHint is visible; the page remount on arrival resets it.
+                    // Tapping the active list just closes the menu (no nav).
+                    onClick={() => {
+                      if (active) close();
+                    }}
+                    className={`flex min-w-0 flex-1 items-center gap-2 border-b border-[var(--ink-5)] px-4 py-3.5 text-[var(--fg)] no-underline! hover:bg-[var(--paper-2)]! hover:text-[var(--fg)] active:bg-[var(--paper-2)] ${
+                      active ? "font-bold" : ""
+                    }`}
+                  >
+                    <span className="t-stamp shrink-0 text-[var(--fg-muted)]">
+                      {COPY[list.type].tag}
+                    </span>
+                    <span className="flex-1 truncate uppercase tracking-wide">
+                      {list.name}
+                      {list.store_name && (
+                        <span className="ml-1.5 normal-case tracking-normal text-[var(--fg-2)]">
+                          {list.store_name}
+                        </span>
+                      )}
+                    </span>
+                    {active ? (
+                      <span
+                        aria-hidden
+                        className="text-sm text-[var(--cobalt)]"
+                      >
+                        ▸
+                      </span>
+                    ) : (
+                      <NavHint />
+                    )}
+                  </Link>
+                  {canDelete && (
+                    <button
+                      onClick={() => requestDelete(list)}
+                      aria-label={`Delete ${list.name}`}
+                      className="flex w-12 shrink-0 items-center justify-center border-b border-[var(--ink-5)] text-sm text-[var(--fg-disabled)] active:text-[var(--term-red)]"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="p-3">
+            {creating ? (
+              <form action={createList} className="flex flex-col gap-1.5">
+                <input type="hidden" name="household_id" value={householdId} />
+                <input type="hidden" name="type" value={newType} />
+
+                <div className="flex gap-1">
+                  {LIST_TYPES.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setNewType(t)}
+                      className={`btn btn-sm flex-1 ${
+                        newType === t ? "btn-acid" : ""
                       }`}
                     >
-                      <span className="t-stamp shrink-0 text-[var(--fg-muted)]">
-                        {COPY[list.type].tag}
-                      </span>
-                      <span className="flex-1 truncate uppercase tracking-wide">
-                        {list.name}
-                        {list.store_name && (
-                          <span className="ml-1.5 normal-case tracking-normal text-[var(--fg-2)]">
-                            {list.store_name}
-                          </span>
-                        )}
-                      </span>
-                      {active ? (
-                        <span
-                          aria-hidden
-                          className="text-sm text-[var(--cobalt)]"
-                        >
-                          ▸
-                        </span>
-                      ) : (
-                        <NavHint />
-                      )}
-                    </Link>
-                    {canDelete && (
-                      <button
-                        onClick={() => requestDelete(list)}
-                        aria-label={`Delete ${list.name}`}
-                        className="px-2 py-2.5 text-sm text-[var(--fg-disabled)] active:text-[var(--term-red)]"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+                      {COPY[t].tag}
+                    </button>
+                  ))}
+                </div>
+                <Hint motion="idle" className="px-0">
+                  GRO sorts by aisle · TODO &amp; WISH rank by priority
+                </Hint>
 
-            <div className="p-1.5">
-              {creating ? (
-                <form action={createList} className="flex flex-col gap-1.5">
-                  <input type="hidden" name="household_id" value={householdId} />
-                  <input type="hidden" name="type" value={newType} />
-
-                  <div className="flex gap-1">
-                    {LIST_TYPES.map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setNewType(t)}
-                        className={`btn btn-sm flex-1 ${
-                          newType === t ? "btn-acid" : ""
-                        }`}
-                      >
-                        {COPY[t].tag}
-                      </button>
-                    ))}
-                  </div>
-                  <Hint motion="idle" className="px-0">
-                    GRO sorts by aisle · TODO &amp; WISH rank by priority
-                  </Hint>
-
+                <input
+                  name="name"
+                  required
+                  autoFocus
+                  maxLength={80}
+                  placeholder="LIST NAME"
+                  className="field"
+                />
+                {newType === "grocery" && (
                   <input
-                    name="name"
-                    required
-                    autoFocus
+                    name="store_name"
                     maxLength={80}
-                    placeholder="LIST NAME"
-                    className="field !text-sm"
+                    placeholder="Store (optional)"
+                    className="field"
                   />
-                  {newType === "grocery" && (
-                    <input
-                      name="store_name"
-                      maxLength={80}
-                      placeholder="Store (optional)"
-                      className="field !text-sm"
-                    />
-                  )}
-                  <CreateSubmit />
-                </form>
-              ) : (
-                <button
-                  onClick={() => setCreating(true)}
-                  className="t-meta flex w-full items-center gap-2 px-2 py-2 text-[var(--fg-2)] active:bg-[var(--paper-2)]"
-                >
-                  [+ NEW LIST]
-                </button>
-              )}
-            </div>
+                )}
+                <CreateSubmit />
+              </form>
+            ) : (
+              <button
+                onClick={() => setCreating(true)}
+                className="btn btn-ghost w-full"
+              >
+                [+ NEW LIST]
+              </button>
+            )}
           </div>
-        </>
-      )}
+        </div>
+      </Drawer>
 
       <Drawer
         open={confirmTarget !== null}
