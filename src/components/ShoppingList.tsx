@@ -3,6 +3,7 @@ import SimpleList from "@/components/SimpleList";
 import type { Item } from "@/lib/useListItems";
 import type { ItemStat, BuyAgainItem } from "@/lib/categories";
 import type { ListType } from "@/lib/listTypes";
+import type { Member } from "@/lib/reminders";
 
 type Template = {
   id: string;
@@ -31,6 +32,7 @@ type Props = {
   initialStats: ItemStat[];
   initialBuyAgain: BuyAgainItem[];
   initialTemplates: Template[];
+  members: Member[];
 };
 
 // Dispatcher: each list type gets its own experience. Grocery keeps the
@@ -67,6 +69,7 @@ export default function ShoppingList(props: Props) {
       inviteCode={props.inviteCode}
       userId={props.userId}
       initialItems={props.initialItems}
+      members={props.members}
     />
   );
 }

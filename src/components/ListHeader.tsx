@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { signOut } from "@/app/actions";
+import { useEffect, useState } from "react";
 import ListSwitcher from "@/components/ListSwitcher";
 import Pixl from "@/components/Pixl";
+import SettingsDrawer from "@/components/SettingsDrawer";
+import { createClient } from "@/lib/supabase/client";
+import { detectTimeZone } from "@/lib/reminders";
 import { stamp } from "@/lib/useListItems";
 import type { ListType } from "@/lib/listTypes";
 
@@ -21,7 +23,7 @@ const BAND_LABEL: Record<ListType, string> = {
 };
 
 // Logbook header band shared by every list view: the panel-head strip, the list
-// switcher, household name, invite, and sign-out.
+// switcher, household name, invite, and settings (which holds sign-out).
 export default function ListHeader({
   lists,
   activeListId,
@@ -31,6 +33,7 @@ export default function ListHeader({
   householdId,
   householdName,
   inviteCode,
+  userId,
   itemCount,
 }: {
   lists: ListSummary[];
@@ -41,9 +44,24 @@ export default function ListHeader({
   householdId: string;
   householdName: string;
   inviteCode: string;
+  userId: string;
   itemCount: number;
 }) {
   const [invited, setInvited] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+
+  // Give every user a settings row with their browser's timezone, so reminders
+  // go out at the right local time even if they never open Settings. Leaves an
+  // existing row alone.
+  useEffect(() => {
+    createClient()
+      .from("user_settings")
+      .upsert(
+        { user_id: userId, timezone: detectTimeZone() },
+        { onConflict: "user_id", ignoreDuplicates: true }
+      )
+      .then(() => {});
+  }, [userId]);
 
   async function shareInvite() {
     const url = `${window.location.origin}/join/${inviteCode}`;
@@ -92,17 +110,18 @@ export default function ListHeader({
           <button onClick={shareInvite} className="btn btn-sm">
             {invited ? "[COPIED]" : "[INVITE]"}
           </button>
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="btn btn-sm btn-ghost"
-              aria-label="Sign out"
-            >
-              EXIT
-            </button>
-          </form>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="btn btn-sm btn-ghost"
+            aria-label="Settings"
+          >
+            SET
+          </button>
         </div>
       </div>
+      {showSettings && (
+        <SettingsDrawer userId={userId} onClose={() => setShowSettings(false)} />
+      )}
     </header>
   );
 }

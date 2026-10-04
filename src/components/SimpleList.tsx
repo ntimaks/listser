@@ -11,6 +11,7 @@ import { useListItems, type Item } from "@/lib/useListItems";
 import { COPY, attrLabels, quickWinSort, type ListType } from "@/lib/listTypes";
 import { isRecurring, nextDue, planRollover } from "@/lib/recurrence";
 import { useLocalToday } from "@/lib/useLocalToday";
+import type { Member } from "@/lib/reminders";
 
 type ListSummary = {
   id: string;
@@ -29,6 +30,7 @@ type Props = {
   inviteCode: string;
   userId: string;
   initialItems: Item[];
+  members?: Member[];
 };
 
 // Flat view for the non-grocery types: non-destructive completion (done/acquired
@@ -43,8 +45,10 @@ export default function SimpleList({
   inviteCode,
   userId,
   initialItems,
+  members = [],
 }: Props) {
   const {
+    supabase,
     items,
     addItem,
     toggleItem,
@@ -130,6 +134,19 @@ export default function SimpleList({
   // to-do and wishlist). Unrated items sink to the bottom.
   const activeItems = useMemo(() => quickWinSort(unchecked), [unchecked]);
 
+  // Save from the detail sheet. Recipients go after the item: giving a task
+  // its first due date makes the database remind the whole household, and the
+  // sheet's picks then replace that default.
+  async function saveItem(id: string, patch: Partial<Item>, remind?: string[]) {
+    const saved = await updateItem(id, patch);
+    if (saved && remind) {
+      await supabase.rpc("set_item_reminders", {
+        p_item_id: id,
+        p_user_ids: remind,
+      });
+    }
+  }
+
   // Keep the open detail sheet bound to the latest item state.
   const editingItem = editing
     ? items.find((i) => i.id === editing.id) ?? null
@@ -177,6 +194,7 @@ export default function SimpleList({
         householdId={householdId}
         householdName={householdName}
         inviteCode={inviteCode}
+        userId={userId}
         itemCount={unchecked.length + upcoming.length + checked.length}
       />
 
@@ -278,9 +296,11 @@ export default function SimpleList({
           lists={lists}
           currentListId={listId}
           onClose={() => setEditing(null)}
-          onSave={updateItem}
+          onSave={saveItem}
           onDelete={deleteItem}
           onMove={moveItem}
+          members={members}
+          userId={userId}
         />
       )}
     </main>

@@ -246,9 +246,9 @@ export function useListItems(
   }
 
   // Edit an item's fields (name / price / url / notes / due date…) from the
-  // detail sheet. Optimistic with rollback.
+  // detail sheet. Optimistic with rollback; resolves to whether it saved.
   async function updateItem(id: string, patch: Partial<Item>) {
-    if (id.startsWith("temp-")) return;
+    if (id.startsWith("temp-")) return false;
     const before = items;
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
 
@@ -257,6 +257,7 @@ export function useListItems(
       .update(patch)
       .eq("id", id);
     if (error) setItems(before);
+    return !error;
   }
 
   // Apply a batch of per-row patches, e.g. the recurring-task rollover from

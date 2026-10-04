@@ -221,6 +221,7 @@ export default function GroceryList({
         householdId={householdId}
         householdName={householdName}
         inviteCode={inviteCode}
+        userId={userId}
         itemCount={unchecked.length + checked.length}
       />
 

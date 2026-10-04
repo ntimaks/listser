@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createHousehold } from "./actions";
 import ShoppingList from "@/components/ShoppingList";
+import type { Member } from "@/lib/reminders";
 
 async function fetchAisleStats(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -117,6 +118,14 @@ export default async function Home({
     .eq("list_id", list.id)
     .order("created_at", { ascending: true });
 
+  // Household members, for picking who a to-do reminds.
+  const { data: members } =
+    list.type === "todo"
+      ? await supabase.rpc("household_member_list", {
+          p_household_id: household.id,
+        })
+      : { data: [] };
+
   // Aisle stats and templates are grocery-only; skip the round-trips otherwise.
   const isGrocery = list.type === "grocery";
   const stats = isGrocery ? await fetchAisleStats(supabase, list.id) : [];
@@ -152,6 +161,7 @@ export default async function Home({
       initialStats={stats}
       initialBuyAgain={buyAgain}
       initialTemplates={templates}
+      members={(members ?? []) as Member[]}
     />
   );
 }
