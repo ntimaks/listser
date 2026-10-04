@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import ListHeader from "@/components/ListHeader";
 import ItemRow from "@/components/ItemRow";
 import SubtaskGroup from "@/components/SubtaskGroup";
@@ -9,6 +9,8 @@ import Hint from "@/components/Hint";
 import Pixl from "@/components/Pixl";
 import { useListItems, type Item } from "@/lib/useListItems";
 import { COPY, attrLabels, quickWinSort, type ListType } from "@/lib/listTypes";
+import { isRecurring, nextDue, planRollover } from "@/lib/recurrence";
+import { useLocalToday } from "@/lib/useLocalToday";
 
 type ListSummary = {
   id: string;
@@ -48,12 +50,28 @@ export default function SimpleList({
     toggleItem,
     setChecked,
     updateItem,
+    patchItems,
     deleteItem,
     deleteItems,
     moveItem,
   } = useListItems(listId, userId, initialItems);
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState<Item | null>(null);
+  const [showUpcoming, setShowUpcoming] = useState(false);
+  const today = useLocalToday();
+
+  // Recurring to-dos: once the local date is known (and again whenever it
+  // changes), reopen tasks whose next date has arrived and move missed
+  // schedule-based ones forward. Every open client may do this; the writes are
+  // the same for the same date, so racing is harmless.
+  const rollover = useEffectEvent((date: string) => {
+    if (type !== "todo") return;
+    const updates = planRollover(items, date);
+    if (updates.length > 0) patchItems(updates);
+  });
+  useEffect(() => {
+    if (today) rollover(today);
+  }, [today]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // The Pixl celebration lives here (not in SubtaskGroup) so it survives the
@@ -95,7 +113,18 @@ export default function SimpleList({
 
   const topLevel = items.filter((i) => i.parent_item_id == null);
   const unchecked = topLevel.filter((i) => !i.checked_at);
-  const checked = topLevel.filter((i) => i.checked_at);
+  // A checked recurring task isn't done, just waiting for its next date: it
+  // sits in UPCOMING (soonest first) instead of DONE, and DONE's clear skips it.
+  const upcoming = useMemo(
+    () =>
+      topLevel
+        .filter((i) => i.checked_at && isRecurring(i))
+        .map((item) => ({ item, next: nextDue(item) ?? "" }))
+        .sort((a, b) => a.next.localeCompare(b.next))
+        .map(({ item }) => item),
+    [topLevel]
+  );
+  const checked = topLevel.filter((i) => i.checked_at && !isRecurring(i));
 
   // "Quick wins": high-importance, low-effort items float to the top (for both
   // to-do and wishlist). Unrated items sink to the bottom.
@@ -123,12 +152,14 @@ export default function SimpleList({
         celebrate={celebratingId === item.id}
         onCelebrate={triggerCelebrate}
         showAdd={showAdd}
+        today={today}
       />
     ) : (
       <ItemRow
         key={item.id}
         item={item}
         type={type}
+        today={today}
         onToggle={toggleItem}
         onDelete={deleteItem}
         onOpen={setEditing}
@@ -146,7 +177,7 @@ export default function SimpleList({
         householdId={householdId}
         householdName={householdName}
         inviteCode={inviteCode}
-        itemCount={unchecked.length + checked.length}
+        itemCount={unchecked.length + upcoming.length + checked.length}
       />
 
       <form
@@ -175,7 +206,7 @@ export default function SimpleList({
         </div>
       </form>
 
-      {unchecked.length === 0 && checked.length === 0 && (
+      {unchecked.length === 0 && upcoming.length === 0 && checked.length === 0 && (
         <div className="flex flex-col items-center gap-3 py-12 text-[var(--fg-muted)]">
           <Pixl motion="wave" size={48} title="Pixl, waving" />
           <p className="t-small text-center">{copy.emptyState}</p>
@@ -191,6 +222,31 @@ export default function SimpleList({
       <ul className="mt-1 flex flex-col">
         {activeItems.map((item) => renderTopLevel(item, true))}
       </ul>
+
+      {upcoming.length > 0 && (
+        <section className="mt-8">
+          <button
+            onClick={() => setShowUpcoming((v) => !v)}
+            aria-expanded={showUpcoming}
+            className="flex w-full items-center justify-between border-b border-[var(--ink-5)] px-1 pb-1.5 text-left"
+          >
+            <h2 className="t-meta">[UPCOMING · {upcoming.length}]</h2>
+            <span aria-hidden className="t-meta text-[var(--fg-muted)]">
+              {showUpcoming ? "▾" : "▸"}
+            </span>
+          </button>
+          {showUpcoming && (
+            <>
+              <Hint motion="sleep" className="mt-1.5">
+                repeating tasks come back on their next date
+              </Hint>
+              <ul className="flex flex-col opacity-70">
+                {upcoming.map((item) => renderTopLevel(item, false))}
+              </ul>
+            </>
+          )}
+        </section>
+      )}
 
       {checked.length > 0 && (
         <section className="mt-8">

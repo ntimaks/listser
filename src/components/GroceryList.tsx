@@ -134,6 +134,10 @@ export default function GroceryList({
       importance: null,
       effort: null,
       parent_item_id: null,
+      due_on: null,
+      repeat_every: null,
+      repeat_unit: null,
+      repeat_from: null,
     }));
     setItems((prev) => [...prev, ...optimisticItems]);
 

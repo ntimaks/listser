@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import type { DueFields, ItemPatch } from "@/lib/recurrence";
 
 export type Item = {
   id: string;
@@ -22,7 +23,7 @@ export type Item = {
   effort: number | null;
   // 0010: non-null on a subtask, pointing at its parent list_item (todo only).
   parent_item_id: string | null;
-};
+} & DueFields; // 0011: due date + repeat (top-level todo only).
 
 // Fields a caller may set when creating an item (wishlist add, subtask, etc.).
 export type ItemExtras = Partial<
@@ -35,6 +36,7 @@ export type ItemExtras = Partial<
     | "importance"
     | "effort"
     | "parent_item_id"
+    | keyof DueFields
   >
 >;
 
@@ -65,6 +67,7 @@ function blankExtras(): Pick<
   | "importance"
   | "effort"
   | "parent_item_id"
+  | keyof DueFields
 > {
   return {
     priority: null,
@@ -74,6 +77,10 @@ function blankExtras(): Pick<
     importance: null,
     effort: null,
     parent_item_id: null,
+    due_on: null,
+    repeat_every: null,
+    repeat_unit: null,
+    repeat_from: null,
   };
 }
 
@@ -238,7 +245,7 @@ export function useListItems(
     if (results.some((r) => r.error)) setItems(before);
   }
 
-  // Edit an item's fields (name / priority / price / url / notes) from the
+  // Edit an item's fields (name / price / url / notes / due date…) from the
   // detail sheet. Optimistic with rollback.
   async function updateItem(id: string, patch: Partial<Item>) {
     if (id.startsWith("temp-")) return;
@@ -250,6 +257,32 @@ export function useListItems(
       .update(patch)
       .eq("id", id);
     if (error) setItems(before);
+  }
+
+  // Apply a batch of per-row patches, e.g. the recurring-task rollover from
+  // planRollover. Rows sharing an identical patch go out as one update.
+  // Optimistic with rollback.
+  async function patchItems(updates: ItemPatch[]) {
+    const real = updates.filter((u) => !u.id.startsWith("temp-"));
+    if (real.length === 0) return;
+
+    const byId = new Map(real.map((u) => [u.id, u.patch]));
+    const before = items;
+    setItems((prev) =>
+      prev.map((i) => (byId.has(i.id) ? { ...i, ...byId.get(i.id) } : i))
+    );
+
+    const groups = new Map<string, string[]>();
+    for (const u of real) {
+      const key = JSON.stringify(u.patch);
+      groups.set(key, [...(groups.get(key) ?? []), u.id]);
+    }
+    const results = await Promise.all(
+      [...groups].map(([key, ids]) =>
+        supabase.from("list_items").update(JSON.parse(key)).in("id", ids)
+      )
+    );
+    if (results.some((r) => r.error)) setItems(before);
   }
 
   // Single-item delete (the ✕ on a row). Deleting a parent drops its subtasks
@@ -331,6 +364,7 @@ export function useListItems(
     toggleItem,
     setChecked,
     updateItem,
+    patchItems,
     deleteItem,
     deleteItems,
     moveItem,

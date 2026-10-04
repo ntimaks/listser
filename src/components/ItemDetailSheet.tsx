@@ -5,6 +5,7 @@ import Drawer from "@/components/Drawer";
 import Hint from "@/components/Hint";
 import type { Item } from "@/lib/useListItems";
 import { type ListType, COPY, LEVELS, attrLabels } from "@/lib/listTypes";
+import type { RepeatFrom, RepeatUnit } from "@/lib/recurrence";
 
 type ListSummary = { id: string; name: string; type: ListType };
 
@@ -43,9 +44,41 @@ function LevelPicker({
   );
 }
 
+// A row of mutually exclusive options, styled like LevelPicker.
+function Segmented<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="t-meta">{label}</span>
+      <div className="flex gap-1">
+        {options.map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => onChange(o.value)}
+            className={`btn btn-sm flex-1 ${value === o.value ? "btn-cobalt" : ""}`}
+            aria-pressed={value === o.value}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // Item editor built on the shared Drawer. Importance + Effort/Cost (1–5) apply
 // to both todo and wishlist; wishlist additionally gets an exact € price and a
-// link. Hosts the "Move to…" promotion picker.
+// link, todo a due date and repeat. Hosts the "Move to…" promotion picker.
 export default function ItemDetailSheet({
   item,
   type,
@@ -74,14 +107,32 @@ export default function ItemDetailSheet({
     item.price_cents != null ? (item.price_cents / 100).toFixed(2) : ""
   );
   const [showMove, setShowMove] = useState(false);
+  const [dueOn, setDueOn] = useState(item.due_on ?? "");
+  const [repeatOn, setRepeatOn] = useState(item.repeat_every != null);
+  const [repeatEvery, setRepeatEvery] = useState(
+    String(item.repeat_every ?? 1)
+  );
+  const [repeatUnit, setRepeatUnit] = useState<RepeatUnit>(
+    item.repeat_unit ?? "week"
+  );
+  const [repeatFrom, setRepeatFrom] = useState<RepeatFrom>(
+    item.repeat_from ?? "schedule"
+  );
 
   const isWishlist = type === "wishlist";
+  const isTodo = type === "todo";
+  const every = Number(repeatEvery);
+  const repeatInvalid =
+    isTodo &&
+    Boolean(dueOn) &&
+    repeatOn &&
+    !(Number.isInteger(every) && every >= 1 && every <= 365);
   const labels = attrLabels(type);
   const moveTargets = lists.filter((l) => l.id !== currentListId);
 
   function handleSave() {
     const trimmedName = name.trim();
-    if (!trimmedName) return;
+    if (!trimmedName || repeatInvalid) return;
 
     const patch: Partial<Item> = {
       name: trimmedName,
@@ -90,6 +141,13 @@ export default function ItemDetailSheet({
       effort,
       priority: null, // legacy field — superseded by importance
     };
+    if (isTodo) {
+      patch.due_on = dueOn || null;
+      const repeats = Boolean(dueOn) && repeatOn;
+      patch.repeat_every = repeats ? every : null;
+      patch.repeat_unit = repeats ? repeatUnit : null;
+      patch.repeat_from = repeats ? repeatFrom : null;
+    }
     if (isWishlist) {
       patch.url = url.trim() || null;
       const parsed = parseFloat(priceInput.replace(",", "."));
@@ -141,6 +199,89 @@ export default function ItemDetailSheet({
           importance + {labels.effort.toLowerCase()} set the quick-wins order ·
           tap a number again to clear
         </Hint>
+
+        {isTodo && (
+          <>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="item-due-on" className="t-meta">
+                Due date
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="item-due-on"
+                  type="date"
+                  value={dueOn}
+                  onChange={(e) => setDueOn(e.target.value)}
+                  className="field min-w-0 flex-1"
+                />
+                {dueOn && (
+                  <button
+                    type="button"
+                    onClick={() => setDueOn("")}
+                    className="btn btn-sm btn-ghost shrink-0"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {dueOn && (
+              <>
+                <Segmented
+                  label="Repeat"
+                  value={repeatOn ? "on" : "off"}
+                  options={[
+                    { value: "off", label: "Once" },
+                    { value: "on", label: "Repeat" },
+                  ]}
+                  onChange={(v) => setRepeatOn(v === "on")}
+                />
+                {repeatOn && (
+                  <>
+                    <div className="flex items-end gap-2">
+                      <label className="flex w-20 flex-col gap-1">
+                        <span className="t-meta">Every</span>
+                        <input
+                          value={repeatEvery}
+                          onChange={(e) => setRepeatEvery(e.target.value)}
+                          inputMode="numeric"
+                          className="field"
+                          aria-invalid={repeatInvalid}
+                        />
+                      </label>
+                      <div className="min-w-0 flex-1">
+                        <Segmented
+                          label="Unit"
+                          value={repeatUnit}
+                          options={[
+                            { value: "day", label: "Days" },
+                            { value: "week", label: "Weeks" },
+                          ]}
+                          onChange={setRepeatUnit}
+                        />
+                      </div>
+                    </div>
+                    <Segmented
+                      label="Counted from"
+                      value={repeatFrom}
+                      options={[
+                        { value: "schedule", label: "Due date" },
+                        { value: "completion", label: "Last done" },
+                      ]}
+                      onChange={setRepeatFrom}
+                    />
+                    <Hint motion="idle">
+                      {repeatFrom === "schedule"
+                        ? "keeps to the schedule · a missed one is skipped when the next comes round"
+                        : "next one is counted from the day you check it off"}
+                    </Hint>
+                  </>
+                )}
+              </>
+            )}
+          </>
+        )}
 
         {isWishlist && (
           <>
@@ -230,7 +371,7 @@ export default function ItemDetailSheet({
         <div className="sticky bottom-0 -mx-[var(--s-4)] border-t border-[var(--ink-0)] bg-[var(--bg-panel)] px-[var(--s-4)] pb-1 pt-3">
           <button
             onClick={handleSave}
-            disabled={!name.trim()}
+            disabled={!name.trim() || repeatInvalid}
             className="btn btn-acid w-full"
           >
             Save
