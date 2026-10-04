@@ -8,6 +8,14 @@ import {
   attrLabels,
   levelColor,
 } from "@/lib/listTypes";
+import { dueLabel, nextDue, repeatLabel, shortDate } from "@/lib/recurrence";
+
+const DUE_TONE = {
+  overdue: "text-[var(--term-red)]",
+  today: "text-[var(--vermillion)]",
+  soon: "text-[var(--fg-2)]",
+  later: "text-[var(--fg-muted)]",
+};
 
 // A single item row in the NIKOLASS terminal style. Grocery keeps main's
 // behavior (row = toggle, ✕ = delete). Todo/wishlist (when `onOpen` is given)
@@ -15,6 +23,9 @@ import {
 // deletes — and wishlist rows show priority/price/link inline. `isSubtask`
 // renders an indented, lean variant (toggle + name + delete, no detail/meta);
 // `progress` shows a pixel progress bar + done/total counter on a parent row.
+// To-do rows also show their due date and repeat; a checked recurring row shows
+// when it comes back instead. `today` is the viewer's local date (null until
+// hydrated), which the relative labels need.
 export default function ItemRow({
   item,
   type,
@@ -23,6 +34,7 @@ export default function ItemRow({
   onOpen,
   isSubtask = false,
   progress,
+  today = null,
 }: {
   item: Item;
   type: ListType;
@@ -31,6 +43,7 @@ export default function ItemRow({
   onOpen?: (item: Item) => void;
   isSubtask?: boolean;
   progress?: { done: number; total: number };
+  today?: string | null;
 }) {
   const checked = Boolean(item.checked_at);
   const pending = item.id.startsWith("temp-");
@@ -104,8 +117,19 @@ export default function ItemRow({
   // A parent row with subtasks; null narrows the bar/counter out otherwise.
   const prog = progress && progress.total > 0 ? progress : null;
   const price = type === "wishlist" ? formatPrice(item.price_cents) : null;
+  // Unchecked: when it's due. Checked recurring: when it comes back (derived
+  // from checked_at's local date, so it waits for the client like `today`).
+  const next = checked && today != null ? nextDue(item) : null;
+  const due =
+    !checked && item.due_on != null ? dueLabel(item.due_on, today) : null;
+  const repeat = repeatLabel(item);
   const showMeta =
-    item.importance != null || item.effort != null || price;
+    item.importance != null ||
+    item.effort != null ||
+    price ||
+    due ||
+    next ||
+    repeat;
 
   return (
     <li
@@ -150,6 +174,17 @@ export default function ItemRow({
               )}
               {price && (
                 <span className="t-meta text-[var(--fg-2)]">{price}</span>
+              )}
+              {due && (
+                <span className={`t-meta ${DUE_TONE[due.tone]}`}>{due.text}</span>
+              )}
+              {next && (
+                <span className="t-meta text-[var(--fg-2)]">
+                  NEXT {shortDate(next)}
+                </span>
+              )}
+              {repeat && (
+                <span className="t-meta text-[var(--fg-muted)]">{repeat}</span>
               )}
             </span>
           )}

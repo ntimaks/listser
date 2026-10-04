@@ -26,6 +26,7 @@ export default function SubtaskGroup({
   celebrate = false,
   onCelebrate,
   showAdd = true,
+  today,
 }: {
   parent: Item;
   subtasks: Item[];
@@ -37,6 +38,7 @@ export default function SubtaskGroup({
   celebrate?: boolean;
   onCelebrate?: (parentId: string) => void;
   showAdd?: boolean;
+  today: string | null;
 }) {
   const [draft, setDraft] = useState("");
 
@@ -92,6 +94,7 @@ export default function SubtaskGroup({
           onToggle={toggleParent}
           onDelete={onDelete}
           onOpen={onOpen}
+          today={today}
           progress={total > 0 ? { done, total } : undefined}
         />
         {subtasks.map((s) => (
