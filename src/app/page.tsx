@@ -110,13 +110,33 @@ export default async function Home({
     );
   }
 
-  const { data: items } = await supabase
+  const baseColumns =
+    "id, name, created_at, checked_at, checked_by, created_by, priority, price_cents, url, notes, importance, effort, parent_item_id";
+  const full = await supabase
     .from("list_items")
-    .select(
-      "id, name, created_at, checked_at, checked_by, created_by, priority, price_cents, url, notes, importance, effort, parent_item_id, due_on, repeat_every, repeat_unit, repeat_from"
-    )
+    .select(`${baseColumns}, due_on, repeat_every, repeat_unit, repeat_from`)
     .eq("list_id", list.id)
     .order("created_at", { ascending: true });
+  let items = full.data;
+
+  // Without migration 0011 the due-date columns don't exist and the whole
+  // select fails. Still show the items, with no due dates.
+  if (full.error) {
+    console.error("list_items select failed, retrying without 0011 columns:", full.error.message);
+    const fallback = await supabase
+      .from("list_items")
+      .select(baseColumns)
+      .eq("list_id", list.id)
+      .order("created_at", { ascending: true });
+    if (fallback.error) console.error("list_items select failed:", fallback.error.message);
+    items = (fallback.data ?? []).map((i) => ({
+      ...i,
+      due_on: null,
+      repeat_every: null,
+      repeat_unit: null,
+      repeat_from: null,
+    }));
+  }
 
   // Household members, for picking who a to-do reminds.
   const { data: members } =
