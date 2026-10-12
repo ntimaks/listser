@@ -14,7 +14,8 @@ type Props = {
 
 /**
  * Bottom-sheet drawer in the NIKOLASS system: 1px ink border, square corners,
- * paper surface, offset stamp shadow (no blur), uppercase tracked head bar.
+ * paper surface, offset stamp shadow (no blur), uppercase tracked head bar,
+ * over a terminal-style scanline backdrop.
  * Closes on backdrop click and Escape; locks body scroll while open.
  */
 export default function Drawer({ open, onClose, title, code, children }: Props) {
@@ -40,10 +41,16 @@ export default function Drawer({ open, onClose, title, code, children }: Props) 
   return (
     <>
       <div
-        className="drawer-backdrop fixed inset-0 z-40 bg-[var(--ink-0)]/30"
+        className="drawer-backdrop fixed inset-0 z-40"
         aria-hidden
         onClick={onClose}
-      />
+      >
+        {/* Terminal status strip: what's open, and how to leave. */}
+        <div className="drawer-strip">
+          <span>&gt; {title}</span>
+          <span className="drawer-strip-dim">[ESC]</span>
+        </div>
+      </div>
       <div
         role="dialog"
         aria-modal="true"
