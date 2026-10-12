@@ -47,7 +47,16 @@ export default function Drawer({ open, onClose, title, code, children }: Props) 
       >
         {/* Terminal status strip: what's open, and how to leave. */}
         <div className="drawer-strip">
-          <span>&gt; {title}</span>
+          <span className="drawer-strip-cmd">
+            &gt;&nbsp;
+            <span
+              className="drawer-type"
+              style={{ "--chars": title.length } as React.CSSProperties}
+            >
+              {title}
+            </span>
+            <span className="drawer-cursor">█</span>
+          </span>
           <span className="drawer-strip-dim">[ESC]</span>
         </div>
       </div>

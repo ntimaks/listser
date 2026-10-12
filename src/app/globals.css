@@ -644,20 +644,78 @@ a:hover,
 .drawer-sheet {
   animation: drawer-up var(--dur-base) var(--ease-out);
 }
-/* Terminal backdrop: term-bg dim with faint lime scanlines. Fixed term
-   colors (not ink) so it always darkens, in light and dark themes alike. */
+/* Terminal backdrop: term-bg dim with crawling lime scanlines and a CRT
+   refresh bar rolling down the glass. Fixed term colors (not ink) so it
+   always darkens, in light and dark themes alike. All motion is steps(),
+   per the brand rule. */
 .drawer-backdrop {
-  background:
-    repeating-linear-gradient(
-      to bottom,
-      rgb(200 255 31 / 0.07) 0 1px,
-      transparent 1px 3px
-    ),
-    rgb(10 14 10 / 0.72);
+  overflow: hidden;
+  background: rgb(10 14 10 / 0.72);
   animation: drawer-fade var(--dur-fast) var(--ease-linear);
 }
+.drawer-backdrop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgb(200 255 31 / 0.07) 0 1px,
+    transparent 1px 3px
+  );
+  animation:
+    scan-crawl 0.6s steps(3) infinite,
+    scan-flicker 4s steps(1) infinite;
+}
+.drawer-backdrop::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 18vh;
+  background: linear-gradient(
+    to bottom,
+    transparent 0 40%,
+    rgb(200 255 31 / 0.04) 40% 70%,
+    rgb(200 255 31 / 0.08) 70% 100%
+  );
+  animation: scan-roll 5s steps(40) infinite;
+}
+@keyframes scan-crawl {
+  to {
+    background-position: 0 3px;
+  }
+}
+@keyframes scan-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  48% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  51% {
+    opacity: 0.75;
+  }
+  53% {
+    opacity: 1;
+  }
+}
+@keyframes scan-roll {
+  from {
+    transform: translateY(-18vh);
+  }
+  to {
+    transform: translateY(100vh);
+  }
+}
+
 .drawer-strip {
   position: absolute;
+  z-index: 1;
   top: calc(env(safe-area-inset-top, 0px) + var(--s-3));
   left: var(--s-4);
   right: var(--s-4);
@@ -672,13 +730,52 @@ a:hover,
   color: var(--term-fg);
   pointer-events: none;
 }
+.drawer-strip-cmd {
+  display: flex;
+  min-width: 0;
+  white-space: nowrap;
+}
+/* Title types itself out one character per step. --chars is set inline. */
+.drawer-type {
+  display: inline-block;
+  overflow: hidden;
+  animation: drawer-type calc(var(--chars) * 45ms) steps(var(--chars), end)
+    60ms backwards;
+}
+/* Animates max-width, not width, so the full title always shows once done. */
+@keyframes drawer-type {
+  from {
+    max-width: 0;
+  }
+  to {
+    max-width: calc(var(--chars) * (1ch + var(--tr-wide)));
+  }
+}
+.drawer-cursor {
+  margin-left: 0.15em;
+  animation: cursor-blink 1s steps(1) infinite;
+}
+@keyframes cursor-blink {
+  50% {
+    opacity: 0;
+  }
+}
 .drawer-strip-dim {
   color: var(--term-dim);
+  animation: cursor-blink 2s steps(1) infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .drawer-sheet,
-  .drawer-backdrop {
+  .drawer-backdrop,
+  .drawer-backdrop::before,
+  .drawer-backdrop::after,
+  .drawer-type,
+  .drawer-cursor,
+  .drawer-strip-dim {
     animation: none;
+  }
+  .drawer-backdrop::after {
+    display: none;
   }
 }
 
