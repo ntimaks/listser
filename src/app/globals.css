@@ -644,8 +644,36 @@ a:hover,
 .drawer-sheet {
   animation: drawer-up var(--dur-base) var(--ease-out);
 }
+/* Terminal backdrop: term-bg dim with faint lime scanlines. Fixed term
+   colors (not ink) so it always darkens, in light and dark themes alike. */
 .drawer-backdrop {
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgb(200 255 31 / 0.07) 0 1px,
+      transparent 1px 3px
+    ),
+    rgb(10 14 10 / 0.72);
   animation: drawer-fade var(--dur-fast) var(--ease-linear);
+}
+.drawer-strip {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + var(--s-3));
+  left: var(--s-4);
+  right: var(--s-4);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-4);
+  font-family: var(--ff-pixel);
+  font-size: var(--fs-lg);
+  line-height: 1;
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
+  color: var(--term-fg);
+  pointer-events: none;
+}
+.drawer-strip-dim {
+  color: var(--term-dim);
 }
 @media (prefers-reduced-motion: reduce) {
   .drawer-sheet,
