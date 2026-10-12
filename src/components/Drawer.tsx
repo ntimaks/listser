@@ -23,7 +23,8 @@ export default function Drawer({ open, onClose, title, code, children }: Props) 
     if (!open) return;
 
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      // A picker inside the drawer marks its own Escape as handled.
+      if (e.key === "Escape" && !e.defaultPrevented) onClose();
     }
     document.addEventListener("keydown", onKeyDown);
 

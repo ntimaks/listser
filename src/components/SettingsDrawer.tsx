@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Drawer from "@/components/Drawer";
 import Hint from "@/components/Hint";
 import Segmented from "@/components/Segmented";
+import Select from "@/components/Select";
 import { createClient } from "@/lib/supabase/client";
 import {
-  SEND_TIMES,
+  SEND_TIME_OPTIONS,
   detectTimeZone,
-  timeZoneOptions,
+  timeZoneSelectOptions,
   toSendTime,
   type ReminderSettings,
 } from "@/lib/reminders";
@@ -58,6 +59,14 @@ export default function SettingsDrawer({
     onClose();
   }
 
+  // Every IANA zone with its offset and local time. Rebuilt only when the
+  // saved zone changes (it is always listed, even if the browser lacks it).
+  const zone = settings?.timezone;
+  const zoneOptions = useMemo(
+    () => (zone ? timeZoneSelectOptions(zone) : []),
+    [zone]
+  );
+
   const update = (patch: Partial<ReminderSettings>) =>
     setSettings((s) => (s ? { ...s, ...patch } : s));
 
@@ -79,37 +88,23 @@ export default function SettingsDrawer({
             onChange={(v) => update({ reminders_enabled: v === "on" })}
           />
 
-          <label className="flex flex-col gap-1">
-            <span className="t-meta">Send time</span>
-            <select
-              value={settings.send_time}
-              onChange={(e) => update({ send_time: e.target.value })}
-              disabled={!settings.reminders_enabled}
-              className="field"
-            >
-              {SEND_TIMES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Select
+            label="Send time"
+            value={settings.send_time}
+            options={SEND_TIME_OPTIONS}
+            onChange={(send_time) => update({ send_time })}
+            disabled={!settings.reminders_enabled}
+            searchPlaceholder="Search, e.g. 08 or pm"
+          />
 
-          <label className="flex flex-col gap-1">
-            <span className="t-meta">Timezone</span>
-            <select
-              value={settings.timezone}
-              onChange={(e) => update({ timezone: e.target.value })}
-              disabled={!settings.reminders_enabled}
-              className="field"
-            >
-              {timeZoneOptions(settings.timezone).map((z) => (
-                <option key={z} value={z}>
-                  {z.replaceAll("_", " ")}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Select
+            label="Timezone"
+            value={settings.timezone}
+            options={zoneOptions}
+            onChange={(timezone) => update({ timezone })}
+            disabled={!settings.reminders_enabled}
+            searchPlaceholder="Search city or offset, e.g. Riga or +3"
+          />
 
           <Hint motion="idle">
             {settings.reminders_enabled

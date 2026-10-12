@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import DatePicker from "@/components/DatePicker";
 import Drawer from "@/components/Drawer";
 import Hint from "@/components/Hint";
 import Segmented from "@/components/Segmented";
@@ -212,29 +213,7 @@ export default function ItemDetailSheet({
 
         {isTodo && (
           <>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="item-due-on" className="t-meta">
-                Due date
-              </label>
-              <div className="flex gap-2">
-                <input
-                  id="item-due-on"
-                  type="date"
-                  value={dueOn}
-                  onChange={(e) => setDueOn(e.target.value)}
-                  className="field min-w-0 flex-1"
-                />
-                {dueOn && (
-                  <button
-                    type="button"
-                    onClick={() => setDueOn("")}
-                    className="btn btn-sm btn-ghost shrink-0"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-            </div>
+            <DatePicker label="Due date" value={dueOn} onChange={setDueOn} />
 
             {dueOn && (
               <>
