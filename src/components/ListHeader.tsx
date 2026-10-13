@@ -6,10 +6,9 @@ import ListSwitcher from "@/components/ListSwitcher";
 import MemberAvatar from "@/components/MemberAvatar";
 import MenuIcon from "@/components/MenuIcon";
 import Pixl from "@/components/Pixl";
-import { createClient } from "@/lib/supabase/client";
 import { rememberList } from "@/lib/lastList";
 import { memberName } from "@/lib/members";
-import { detectTimeZone, type Member } from "@/lib/reminders";
+import type { Member } from "@/lib/reminders";
 import type { ListSummary } from "@/lib/household";
 
 const MAX_AVATARS = 4;
@@ -23,7 +22,7 @@ export default function ListHeader({
   householdId,
   householdName,
   members,
-  userId,
+  onSelectList,
 }: {
   lists: ListSummary[];
   activeListId: string;
@@ -31,21 +30,8 @@ export default function ListHeader({
   householdId: string;
   householdName: string;
   members: Member[];
-  userId: string;
+  onSelectList: (listId: string) => void;
 }) {
-  // Give every user a settings row with their browser's timezone, so reminders
-  // go out at the right local time even if they never open the settings.
-  // Leaves an existing row alone.
-  useEffect(() => {
-    createClient()
-      .from("user_settings")
-      .upsert(
-        { user_id: userId, timezone: detectTimeZone() },
-        { onConflict: "user_id", ignoreDuplicates: true }
-      )
-      .then(() => {});
-  }, [userId]);
-
   // The menu pages link back here, and the app reopens here.
   useEffect(() => {
     rememberList(activeListId);
@@ -91,6 +77,7 @@ export default function ListHeader({
           activeListId={activeListId}
           openCounts={openCounts}
           householdId={householdId}
+          onSelect={onSelectList}
         />
         <Link
           href="/menu"

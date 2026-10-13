@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/supabase/auth";
 import { createHousehold } from "./actions";
-import ListHeader from "@/components/ListHeader";
-import ShoppingList from "@/components/ShoppingList";
+import ListApp from "@/components/ListApp";
+import type { Template } from "@/components/GroceryList";
 import {
   fetchHousehold,
   fetchLists,
@@ -10,31 +11,7 @@ import {
   fetchOpenCounts,
   lastListId,
 } from "@/lib/household";
-
-async function fetchAisleStats(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  listId: string
-) {
-  const staleCutoff = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
-  const { data } = await supabase
-    .from("item_stats")
-    .select("name_key, position_score, trip_count")
-    .eq("list_id", listId)
-    .gte("last_seen_at", staleCutoff.toISOString());
-  return data ?? [];
-}
-
-// Buy-again candidates ranked from the purchase log (RPC handles the GROUP BY).
-async function fetchBuyAgain(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  listId: string
-) {
-  const { data } = await supabase.rpc("buy_again", {
-    p_list_id: listId,
-    p_limit: 12,
-  });
-  return data ?? [];
-}
+import { fetchListData, type ListData } from "@/lib/listData";
 
 export default async function Home({
   searchParams,
@@ -44,16 +21,9 @@ export default async function Home({
   const supabase = await createClient();
   // Independent lookups run together: every query here is a round-trip to
   // Supabase, so a chain of awaits adds up fast. RLS scopes the household
-  // lookup to the caller, so it needn't wait for getUser.
-  const [
-    {
-      data: { user },
-    },
-    household,
-    lastId,
-    { list: requestedId },
-  ] = await Promise.all([
-    supabase.auth.getUser(),
+  // lookup to the caller, so it needn't wait for the auth check.
+  const [user, household, lastId, { list: requestedId }] = await Promise.all([
+    getAuthUser(supabase),
     fetchHousehold(supabase),
     lastListId(),
     searchParams,
@@ -115,83 +85,39 @@ export default async function Home({
     );
   }
 
-  const baseColumns =
-    "id, name, created_at, checked_at, checked_by, created_by, priority, price_cents, url, notes, importance, effort, parent_item_id";
-  // Aisle stats, buy-again and templates are grocery-only; skip the
-  // round-trips otherwise.
-  const isGrocery = list.type === "grocery";
-  const [full, openCounts, stats, buyAgain, { data: templatesData }] =
-    await Promise.all([
-      supabase
-        .from("list_items")
-        .select(`${baseColumns}, due_on, repeat_every, repeat_unit, repeat_from`)
-        .eq("list_id", list.id)
-        .order("created_at", { ascending: true }),
-      fetchOpenCounts(
-        supabase,
-        lists.map((l) => l.id)
-      ),
-      isGrocery ? fetchAisleStats(supabase, list.id) : [],
-      isGrocery ? fetchBuyAgain(supabase, list.id) : [],
-      isGrocery
-        ? supabase
-            .from("templates")
-            .select("id, name, template_items(item_name, sort_order)")
-            .eq("household_id", household.id)
-            .order("created_at", { ascending: true })
-        : { data: [] },
-    ]);
-  let items = full.data;
-
-  // Without migration 0011 the due-date columns don't exist and the whole
-  // select fails. Still show the items, with no due dates.
-  if (full.error) {
-    console.error("list_items select failed, retrying without 0011 columns:", full.error.message);
-    const fallback = await supabase
-      .from("list_items")
-      .select(baseColumns)
-      .eq("list_id", list.id)
-      .order("created_at", { ascending: true });
-    if (fallback.error) console.error("list_items select failed:", fallback.error.message);
-    items = (fallback.data ?? []).map((i) => ({
-      ...i,
-      due_on: null,
-      repeat_every: null,
-      repeat_unit: null,
-      repeat_from: null,
-    }));
-  }
-
-  const templates = (templatesData ?? []) as {
-    id: string;
-    name: string;
-    template_items: { item_name: string; sort_order: number }[];
-  }[];
+  // This list's data, the open counts for the switcher, and the household's
+  // templates (any list can be switched to a grocery one). The other lists
+  // load in the browser right after (see useListStore).
+  const [listData, openCounts, { data: templatesData }] = await Promise.all([
+    fetchListData(supabase, [list]).catch((e): Record<string, ListData> => {
+      console.error("list data failed:", e);
+      return {};
+    }),
+    fetchOpenCounts(
+      supabase,
+      lists.map((l) => l.id)
+    ),
+    supabase
+      .from("templates")
+      .select("id, name, template_items(item_name, sort_order)")
+      .eq("household_id", household.id)
+      .order("created_at", { ascending: true }),
+  ]);
 
   return (
-    <ShoppingList
-      key={list.id}
-      listId={list.id}
-      listType={list.type}
-      header={
-        <ListHeader
-          lists={lists}
-          activeListId={list.id}
-          openCounts={openCounts}
-          householdId={household.id}
-          householdName={household.name}
-          members={members}
-          userId={user.id}
-        />
-      }
+    <ListApp
+      key={household.id}
       lists={lists}
       householdId={household.id}
-      userId={user.id}
-      initialItems={items ?? []}
-      initialStats={stats}
-      initialBuyAgain={buyAgain}
-      initialTemplates={templates}
+      householdName={household.name}
       members={members}
+      userId={user.id}
+      initialListId={list.id}
+      initialData={
+        listData[list.id] ?? { items: [], stats: [], buyAgain: [] }
+      }
+      initialTemplates={(templatesData ?? []) as Template[]}
+      initialOpenCounts={openCounts}
     />
   );
 }

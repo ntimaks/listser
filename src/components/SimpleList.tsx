@@ -6,8 +6,11 @@ import {
   useMemo,
   useRef,
   useState,
+  type Dispatch,
   type ReactNode,
+  type SetStateAction,
 } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import ItemRow from "@/components/ItemRow";
 import SubtaskGroup from "@/components/SubtaskGroup";
 import ItemDetailSheet from "@/components/ItemDetailSheet";
@@ -29,11 +32,14 @@ type ListSummary = {
 type Props = {
   type: "todo" | "wishlist";
   listId: string;
-  /** The list header, built by the page. */
+  supabase: SupabaseClient;
+  /** The list header, built by ListApp. */
   header: ReactNode;
   lists: ListSummary[];
   userId: string;
-  initialItems: Item[];
+  // Lives in the list cache (useListStore) so it survives switching lists.
+  items: Item[];
+  setItems: Dispatch<SetStateAction<Item[]>>;
   members?: Member[];
 };
 
@@ -41,16 +47,16 @@ type Props = {
 // items stay until cleared), a tap-to-edit detail sheet, and item promotion.
 export default function SimpleList({
   type,
+  supabase,
   listId,
   header,
   lists,
   userId,
-  initialItems,
+  items,
+  setItems,
   members = [],
 }: Props) {
   const {
-    supabase,
-    items,
     addItem,
     toggleItem,
     setChecked,
@@ -59,7 +65,7 @@ export default function SimpleList({
     deleteItem,
     deleteItems,
     moveItem,
-  } = useListItems(listId, userId, initialItems);
+  } = useListItems(supabase, listId, userId, items, setItems);
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState<Item | null>(null);
   const [showUpcoming, setShowUpcoming] = useState(false);

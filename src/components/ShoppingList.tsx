@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
-import GroceryList from "@/components/GroceryList";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import GroceryList, { type Template } from "@/components/GroceryList";
 import SimpleList from "@/components/SimpleList";
 import type { Item } from "@/lib/useListItems";
 import type { ItemStat, BuyAgainItem } from "@/lib/categories";
@@ -7,23 +8,22 @@ import type { ListType } from "@/lib/listTypes";
 import type { ListSummary } from "@/lib/household";
 import type { Member } from "@/lib/reminders";
 
-type Template = {
-  id: string;
-  name: string;
-  template_items: { item_name: string; sort_order: number }[];
-};
-
 type Props = {
+  supabase: SupabaseClient;
   listId: string;
   listType: ListType;
   header: ReactNode;
   lists: ListSummary[];
   householdId: string;
   userId: string;
-  initialItems: Item[];
-  initialStats: ItemStat[];
-  initialBuyAgain: BuyAgainItem[];
-  initialTemplates: Template[];
+  items: Item[];
+  setItems: Dispatch<SetStateAction<Item[]>>;
+  stats: ItemStat[];
+  setStats: Dispatch<SetStateAction<ItemStat[]>>;
+  buyAgain: BuyAgainItem[];
+  setBuyAgain: Dispatch<SetStateAction<BuyAgainItem[]>>;
+  templates: Template[];
+  setTemplates: Dispatch<SetStateAction<Template[]>>;
   members: Member[];
 };
 
@@ -34,14 +34,19 @@ export default function ShoppingList(props: Props) {
   if (props.listType === "grocery") {
     return (
       <GroceryList
+        supabase={props.supabase}
         listId={props.listId}
         header={props.header}
         householdId={props.householdId}
         userId={props.userId}
-        initialItems={props.initialItems}
-        initialStats={props.initialStats}
-        initialBuyAgain={props.initialBuyAgain}
-        initialTemplates={props.initialTemplates}
+        items={props.items}
+        setItems={props.setItems}
+        stats={props.stats}
+        setStats={props.setStats}
+        buyAgain={props.buyAgain}
+        setBuyAgain={props.setBuyAgain}
+        templates={props.templates}
+        setTemplates={props.setTemplates}
       />
     );
   }
@@ -49,11 +54,13 @@ export default function ShoppingList(props: Props) {
   return (
     <SimpleList
       type={props.listType}
+      supabase={props.supabase}
       listId={props.listId}
       header={props.header}
       lists={props.lists}
       userId={props.userId}
-      initialItems={props.initialItems}
+      items={props.items}
+      setItems={props.setItems}
       members={props.members}
     />
   );

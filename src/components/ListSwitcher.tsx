@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link, { useLinkStatus } from "next/link";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { createList, deleteList } from "@/app/actions";
@@ -9,23 +8,17 @@ import Drawer from "@/components/Drawer";
 import Hint from "@/components/Hint";
 import { COPY, LIST_TYPES, type ListType } from "@/lib/listTypes";
 import type { ListSummary } from "@/lib/household";
+import { listHref } from "@/lib/lastList";
 
 type Props = {
   lists: ListSummary[];
   activeListId: string;
-  /** Unchecked items per list, as of page load. */
+  /** Unchecked top-level items per list. */
   openCounts: Record<string, number>;
   householdId: string;
+  /** Show another list. Handled in the browser, no page load. */
+  onSelect: (listId: string) => void;
 };
-
-// Subtle pending dot on the row being switched to, shown while the new list's
-// data loads. Must live inside the <Link>; styling lives in globals.css.
-function NavHint() {
-  const { pending } = useLinkStatus();
-  return (
-    <span aria-hidden className={`list-hint ${pending ? "is-pending" : ""}`} />
-  );
-}
 
 // Submit button for the create form. useFormStatus reports the surrounding
 // form's pending state, so we show progress and block a double-submit.
@@ -43,6 +36,7 @@ export default function ListSwitcher({
   activeListId,
   openCounts,
   householdId,
+  onSelect,
 }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -170,14 +164,17 @@ export default function ListSwitcher({
                         key={list.id}
                         className={`flex items-stretch ${active ? "bg-[var(--acid)] text-[var(--on-acid)]" : ""}`}
                       >
-                        <Link
-                          href={`/?list=${list.id}`}
-                          prefetch={false}
-                          // Switching to another list keeps the menu open so the
-                          // NavHint is visible; the page remount on arrival resets it.
-                          // Tapping the active list just closes the menu (no nav).
-                          onClick={() => {
-                            if (active) close();
+                        <a
+                          href={listHref(list.id)}
+                          // Lists are all held in memory, so switching is a
+                          // local state change rather than a page load. A
+                          // modified click still opens the list in a new tab.
+                          onClick={(e) => {
+                            if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+                              return;
+                            e.preventDefault();
+                            close();
+                            if (!active) onSelect(list.id);
                           }}
                           aria-current={active ? "page" : undefined}
                           className={`flex min-h-14 min-w-0 flex-1 items-center gap-2 border-b border-[var(--ink-5)] px-4 py-2 no-underline! ${
@@ -193,8 +190,7 @@ export default function ListSwitcher({
                             </span>
                             <span className="t-small opacity-80">
                               {list.store_name && `${list.store_name} · `}
-                              {/* The active list's count would be stale once
-                                  you add items, so it just says you're on it. */}
+                              {/* The active row says you're on it instead. */}
                               {active ? "open now" : `${openCount} ${COPY[type].openNoun}`}
                             </span>
                           </span>
@@ -202,10 +198,8 @@ export default function ListSwitcher({
                             <span aria-hidden className="text-sm">
                               ●
                             </span>
-                          ) : (
-                            <NavHint />
-                          )}
-                        </Link>
+                          ) : null}
+                        </a>
                         {canDelete && (
                           <button
                             onClick={() => requestDelete(list)}

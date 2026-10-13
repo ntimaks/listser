@@ -66,6 +66,16 @@ export function ListSkeleton() {
         </div>
       </header>
 
+      <ListBodySkeleton />
+    </main>
+  );
+}
+
+// Everything below the header: the add box and a column of rows. Also shown
+// on its own when switching to a list that hasn't loaded yet.
+export function ListBodySkeleton() {
+  return (
+    <div aria-busy="true">
       {/* Add box */}
       <div className="flex gap-2 pb-3 pt-3">
         <div className="field flex min-w-0 flex-1 items-center">
@@ -83,7 +93,7 @@ export function ListSkeleton() {
           <RowSkeleton key={i} width={w} />
         ))}
       </ul>
-    </main>
+    </div>
   );
 }
 

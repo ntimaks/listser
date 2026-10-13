@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import type { Dispatch, SetStateAction } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DueFields, ItemPatch } from "@/lib/recurrence";
 
 export type Item = {
@@ -84,68 +84,39 @@ function blankExtras(): Pick<
   };
 }
 
+// Fold a realtime INSERT into a list's items. Optimistic rows use temp ids,
+// so a server row either replaces its temp twin (matched by name + creator +
+// parent) or is appended.
+export function reconcileInsert(prev: Item[], row: Item): Item[] {
+  if (prev.some((i) => i.id === row.id)) return prev;
+  const tempIdx = prev.findIndex(
+    (i) =>
+      i.id.startsWith("temp-") &&
+      i.name === row.name &&
+      i.created_by === row.created_by &&
+      i.parent_item_id === row.parent_item_id
+  );
+  if (tempIdx !== -1) {
+    const next = [...prev];
+    next[tempIdx] = row;
+    return next;
+  }
+  return [...prev, row];
+}
+
 /**
- * Shared list-item plumbing for every list type: the realtime subscription,
- * optimistic CRUD, and reconciliation. Grocery-only behavior (finishTrip,
- * templates, aisle stats) lives in GroceryList, not here.
+ * Shared list-item plumbing for every list type: optimistic CRUD with
+ * rollback. The items live in the list cache (useListStore), which also keeps
+ * them in sync over realtime, so switching lists keeps every edit. Grocery-only
+ * behavior (finishTrip, templates, aisle stats) lives in GroceryList.
  */
 export function useListItems(
+  supabase: SupabaseClient,
   listId: string,
   userId: string,
-  initialItems: Item[]
+  items: Item[],
+  setItems: Dispatch<SetStateAction<Item[]>>
 ) {
-  const supabase = useMemo(() => createClient(), []);
-  const [items, setItems] = useState<Item[]>(initialItems);
-
-  // Realtime: reconcile server events into local state. Optimistic rows use
-  // temp ids, so a server INSERT either replaces its temp twin (matched by
-  // name + creator) or appends.
-  useEffect(() => {
-    const channel = supabase
-      .channel(`list:${listId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "list_items",
-          filter: `list_id=eq.${listId}`,
-        },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            const row = payload.new as Item;
-            setItems((prev) => {
-              if (prev.some((i) => i.id === row.id)) return prev;
-              const tempIdx = prev.findIndex(
-                (i) =>
-                  i.id.startsWith("temp-") &&
-                  i.name === row.name &&
-                  i.created_by === row.created_by &&
-                  i.parent_item_id === row.parent_item_id
-              );
-              if (tempIdx !== -1) {
-                const next = [...prev];
-                next[tempIdx] = row;
-                return next;
-              }
-              return [...prev, row];
-            });
-          } else if (payload.eventType === "UPDATE") {
-            const row = payload.new as Item;
-            setItems((prev) => prev.map((i) => (i.id === row.id ? row : i)));
-          } else if (payload.eventType === "DELETE") {
-            const row = payload.old as Item;
-            setItems((prev) => prev.filter((i) => i.id !== row.id));
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [supabase, listId]);
-
   async function addItem(name: string, extras: ItemExtras = {}) {
     const trimmed = name.trim();
     if (!trimmed) return;

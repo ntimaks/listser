@@ -1,6 +1,14 @@
 "use client";
 
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createTemplate, deleteTemplate } from "@/app/actions";
 import ItemRow from "@/components/ItemRow";
 import Drawer from "@/components/Drawer";
@@ -16,35 +24,53 @@ import {
 import { COPY } from "@/lib/listTypes";
 
 type TemplateItem = { item_name: string; sort_order: number };
-type Template = { id: string; name: string; template_items: TemplateItem[] };
+export type Template = {
+  id: string;
+  name: string;
+  template_items: TemplateItem[];
+};
 
 type Props = {
+  supabase: SupabaseClient;
   listId: string;
-  /** The list header, built by the page. */
+  /** The list header, built by ListApp. */
   header: ReactNode;
   householdId: string;
   userId: string;
-  initialItems: Item[];
-  initialStats: ItemStat[];
-  initialBuyAgain: BuyAgainItem[];
-  initialTemplates: Template[];
+  // State lives in the list cache (useListStore) so it survives switching
+  // lists; templates are household-wide and live in ListApp.
+  items: Item[];
+  setItems: Dispatch<SetStateAction<Item[]>>;
+  stats: ItemStat[];
+  setStats: Dispatch<SetStateAction<ItemStat[]>>;
+  buyAgain: BuyAgainItem[];
+  setBuyAgain: Dispatch<SetStateAction<BuyAgainItem[]>>;
+  templates: Template[];
+  setTemplates: Dispatch<SetStateAction<Template[]>>;
 };
 
 export default function GroceryList({
+  supabase,
   listId,
   header,
   householdId,
   userId,
-  initialItems,
-  initialStats,
-  initialBuyAgain,
-  initialTemplates,
+  items,
+  setItems,
+  stats,
+  setStats,
+  buyAgain,
+  setBuyAgain,
+  templates,
+  setTemplates,
 }: Props) {
-  const { supabase, items, setItems, addItem, toggleItem, deleteItem } =
-    useListItems(listId, userId, initialItems);
-  const [stats, setStats] = useState<ItemStat[]>(initialStats);
-  const [buyAgain, setBuyAgain] = useState<BuyAgainItem[]>(initialBuyAgain);
-  const [templates, setTemplates] = useState<Template[]>(initialTemplates);
+  const { addItem, toggleItem, deleteItem } = useListItems(
+    supabase,
+    listId,
+    userId,
+    items,
+    setItems
+  );
   const [draft, setDraft] = useState("");
   const [showTemplates, setShowTemplates] = useState(false);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);

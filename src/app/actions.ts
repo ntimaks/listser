@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/supabase/auth";
 
 export async function createHousehold(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
@@ -48,9 +49,7 @@ export async function createTemplate(
   items: string[]
 ) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser(supabase);
   if (!user) throw new Error("not authenticated");
 
   const { data: template, error: templateError } = await supabase

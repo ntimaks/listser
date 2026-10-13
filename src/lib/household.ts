@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/supabase/auth";
 import { LAST_LIST_COOKIE, listHref } from "@/lib/lastList";
 import type { ListType } from "@/lib/listTypes";
 import type { Member } from "@/lib/reminders";
@@ -77,17 +78,11 @@ export async function lastListId(): Promise<string | undefined> {
 // Everything the menu and its pages need: who you are, your household, and
 // the list to go back to. Queries that don't depend on each other run
 // together; RLS scopes the household lookup to the caller, so it needn't wait
-// for getUser. Pass { members: true } to load the member list alongside.
+// for the auth check. Pass { members: true } to load the member list alongside.
 export async function loadNavContext({ members = false } = {}) {
   const supabase = await createClient();
-  const [
-    {
-      data: { user },
-    },
-    household,
-    lastId,
-  ] = await Promise.all([
-    supabase.auth.getUser(),
+  const [user, household, lastId] = await Promise.all([
+    getAuthUser(supabase),
     fetchHousehold(supabase),
     lastListId(),
   ]);
