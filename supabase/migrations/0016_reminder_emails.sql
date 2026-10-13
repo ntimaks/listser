@@ -18,7 +18,9 @@
 -- nothing is sent for a date that has passed.
 
 create extension if not exists pg_cron;
-create extension if not exists pg_net;
+-- Its functions live in the `net` schema; this only keeps the extension
+-- itself out of public.
+create extension if not exists pg_net with schema extensions;
 
 -- ---------------------------------------------------------------------------
 -- Unsubscribe tokens
