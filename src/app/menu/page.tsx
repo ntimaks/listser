@@ -32,6 +32,7 @@ export default async function MenuPage() {
     <PageShell title="Menu" back={back}>
       <Link
         href="/settings"
+        prefetch
         className="link-plain panel panel-stamp flex items-center gap-3 p-2.5"
       >
         <MemberAvatar userId={user.id} email={email} size={44} />
@@ -100,7 +101,12 @@ export default async function MenuPage() {
           const row =
             "flex min-h-[54px] items-center gap-3 border-b border-[var(--ink-5)] px-3 last:border-b-0";
           return s.href ? (
-            <Link key={s.label} href={s.href} className={`link-plain ${row}`}>
+            <Link
+              key={s.label}
+              href={s.href}
+              prefetch
+              className={`link-plain ${row}`}
+            >
               {body}
             </Link>
           ) : (

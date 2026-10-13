@@ -28,7 +28,7 @@ export default function PageShell({
           </span>
           {parent && (
             <>
-              <Link href={parent.href} className="shrink-0">
+              <Link href={parent.href} prefetch className="shrink-0">
                 {parent.label}
               </Link>
               <span aria-hidden className="term-strip-dim shrink-0">
@@ -44,6 +44,7 @@ export default function PageShell({
           {parent && (
             <Link
               href={parent.href}
+              prefetch
               aria-label={`Back to ${parent.label.toLowerCase()}`}
               className="link-plain flex h-11 w-11 shrink-0 items-center justify-center border border-[var(--ink-0)]"
             >
@@ -53,6 +54,10 @@ export default function PageShell({
           <h1 className="t-h2 min-w-0 flex-1 truncate">{title}</h1>
           <Link
             href={back.href}
+            // Prefetched so closing is instant. The list refreshes itself as
+            // soon as it shows (see useListStore), so a minutes-old copy is
+            // fine here.
+            prefetch
             aria-label={`Close, back to ${back.name}`}
             className="link-plain flex h-11 w-11 shrink-0 items-center justify-center border border-[var(--ink-0)]"
           >

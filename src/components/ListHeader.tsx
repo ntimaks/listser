@@ -50,6 +50,7 @@ export default function ListHeader({
         {members.length > 0 && (
           <Link
             href="/household"
+            prefetch
             aria-label={`Household: ${members.map((m) => memberName(m.email)).join(", ")}`}
             className="link-avatars flex shrink-0 items-center py-1"
           >
@@ -81,6 +82,10 @@ export default function ListHeader({
         />
         <Link
           href="/menu"
+          // Fully prefetched (not just the loading shell) while the list is
+          // on screen, so the menu opens without a server round-trip. Cached
+          // for five minutes; menu data rarely changes.
+          prefetch
           aria-label="Menu"
           className="link-plain flex w-[52px] shrink-0 flex-col items-center justify-center gap-1.5 border border-[var(--ink-0)] bg-[var(--paper-0)] py-1.5"
         >

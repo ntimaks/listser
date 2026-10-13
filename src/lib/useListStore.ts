@@ -24,8 +24,8 @@ function apply<T>(action: SetStateAction<T>, prev: T): T {
 
 /**
  * Every list in the household, held in memory so switching lists is instant.
- * The server renders the list you open; the rest load in the background right
- * after. One realtime channel covers all of them, so a list you switch to is
+ * The server renders the list you open; all lists (that one included, to
+ * catch up) load in the background right after. One realtime channel covers all of them, so a list you switch to is
  * already up to date, edits by others included.
  */
 export function useListStore({
@@ -44,8 +44,14 @@ export function useListStore({
 }) {
   const [store, setStore] = useState<Store>(() => ({ [seedListId]: seedData }));
   const [failed, setFailed] = useState<ReadonlySet<string>>(new Set());
-  // Lists loaded or loading, so each is fetched once.
-  const requested = useRef(new Set([seedListId]));
+  // Lists loaded or loading, so each is fetched once. The server-rendered
+  // list is fetched again too: it may come from a prefetch or the back/forward
+  // cache, minutes old, and realtime only covers changes from now on.
+  const requested = useRef(new Set<string>());
+  const seedRef = useRef(seedData);
+  useEffect(() => {
+    seedRef.current = seedData;
+  }, [seedData]);
 
   // A later server render (e.g. landing on a list you just created) can hand
   // over a list not loaded yet. Ones already held are kept: realtime has kept
@@ -69,10 +75,14 @@ export function useListStore({
       });
       try {
         const data = await fetchListData(supabase, fresh);
-        // Never overwrite a list that got data some other way meanwhile.
+        // Fill in lists not held yet, and replace the server's copy if it's
+        // untouched. Anything edited meanwhile (by you or over realtime) is
+        // kept as is.
         setStore((s) => {
           const next = { ...s };
-          for (const [id, d] of Object.entries(data)) next[id] ??= d;
+          for (const [id, d] of Object.entries(data)) {
+            if (!next[id] || next[id] === seedRef.current) next[id] = d;
+          }
           return next;
         });
       } catch (e) {
