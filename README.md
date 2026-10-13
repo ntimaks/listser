@@ -127,6 +127,43 @@ Code: `supabase/migrations/0014_calendar_feeds.sql` (table + RPCs),
 `src/app/api/calendar/[token]/route.ts` (feed), `src/lib/ical.ts`
 (iCalendar output) and `src/components/CalendarFeedForm.tsx` (settings).
 
+## Reminder emails
+
+Each to-do with a due date can remind household members by email (the task
+editor picks who). Every user sets a send time and timezone in **Settings →
+Reminders**, or turns emails off. On the due date, at or after their send
+time, each recipient gets one email per task.
+
+- pg_cron runs every 15 minutes and POSTs to `/api/reminders/send` (through
+  pg_net). The route works out what's due with the same recurrence rules as
+  the app, records each reminder in `reminder_sends` before sending so none
+  goes out twice, and sends through [Resend](https://resend.com).
+- A run that's missed still sends later the same day; nothing is sent for a
+  date that has passed.
+- Each email has a **Stop reminder emails** link (and one-click unsubscribe
+  headers) that turns the recipient's reminders off without signing in.
+
+### Enable it (once per deployment)
+
+1. In Resend, verify the domain you'll send from and create an API key.
+2. Set these env vars in Vercel (see `.env.example`):
+   `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `REMINDERS_FROM` and
+   `REMINDERS_CRON_SECRET` (a long random string, e.g. `openssl rand -hex 32`).
+3. Run `0016_reminder_emails.sql`, then store the app URL and the same secret
+   in Vault from the SQL Editor:
+
+   ```sql
+   select vault.create_secret('https://<your-domain>', 'reminders_app_url');
+   select vault.create_secret('<REMINDERS_CRON_SECRET>', 'reminders_cron_secret');
+   ```
+
+   Until both secrets exist the cron job does nothing.
+
+Code: `supabase/migrations/0016_reminder_emails.sql` (send log, RPCs, cron),
+`src/app/api/reminders/send/route.ts` (sender),
+`src/app/api/reminders/unsubscribe/[token]/route.ts` (unsubscribe) and
+`src/lib/reminderEmail.ts` (what's due, email content).
+
 ## Deploying
 
 Deploy to Vercel, set the two env vars from `.env.example`, and update the
