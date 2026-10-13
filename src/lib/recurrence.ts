@@ -96,17 +96,19 @@ function catchUp(due: string, step: number, today: string): string {
   return addDays(due, Math.floor(behind / step) * step);
 }
 
-// When a checked recurring task comes back.
+// When a checked recurring task comes back. `timeZone` places the check-off on
+// a calendar day (the runtime's zone when omitted, as in the browser).
 // - completion: `every` days/weeks after the day it was checked.
 // - schedule: the first occurrence after both its due date and the day it was
 //   checked, so an early check skips nothing and a late one doesn't bring the
 //   task straight back.
 export function nextDue(
-  item: DueFields & { checked_at: string | null }
+  item: DueFields & { checked_at: string | null },
+  timeZone?: string
 ): string | null {
   if (!isRecurring(item) || !item.checked_at) return null;
   const step = stepDays(item);
-  const checkedDay = localDate(new Date(item.checked_at));
+  const checkedDay = localDate(new Date(item.checked_at), timeZone);
   if (item.repeat_from === "completion") return addDays(checkedDay, step);
 
   const base = checkedDay > item.due_on ? checkedDay : item.due_on;
@@ -155,6 +157,24 @@ export function planRollover(
     }
   }
   return updates;
+}
+
+// The date a task is really due on as of `today`, without waiting for a
+// client to run planRollover: a checked recurring task whose next date has
+// arrived counts as reopened, and a schedule-based one skips missed
+// occurrences. A checked task that isn't back yet is due on its next date.
+// Null for a task with no date, or a checked one-off.
+export function upcomingDue(
+  item: DueFields & { checked_at: string | null },
+  today: string,
+  timeZone?: string
+): string | null {
+  if (item.due_on == null) return null;
+  if (!isRecurring(item)) return item.checked_at ? null : item.due_on;
+  const step = stepDays(item);
+  const due = item.checked_at ? nextDue(item, timeZone) : item.due_on;
+  if (due == null) return null;
+  return item.repeat_from === "schedule" ? catchUp(due, step, today) : due;
 }
 
 // "26.10.12", matching the logbook-style stamp() on item rows.

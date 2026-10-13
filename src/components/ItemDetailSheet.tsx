@@ -7,7 +7,13 @@ import Hint from "@/components/Hint";
 import Segmented from "@/components/Segmented";
 import type { Item } from "@/lib/useListItems";
 import { type ListType, COPY, LEVELS, attrLabels } from "@/lib/listTypes";
-import type { RepeatFrom, RepeatUnit } from "@/lib/recurrence";
+import { buildCalendar, icsFileName } from "@/lib/ical";
+import {
+  localDate,
+  upcomingDue,
+  type RepeatFrom,
+  type RepeatUnit,
+} from "@/lib/recurrence";
 import type { Member } from "@/lib/reminders";
 import { createClient } from "@/lib/supabase/client";
 import CheckMark from "./CheckMark";
@@ -170,6 +176,32 @@ export default function ItemDetailSheet({
       isTodo && dueOn && remind ? remind : undefined
     );
     onClose();
+  }
+
+  // The saved task as a one-off .ics, which phones open straight into their
+  // calendar app. Uses the saved date and repeat, not unsaved edits.
+  const calendarDue = isTodo ? upcomingDue(item, localDate()) : null;
+  function handleAddToCalendar() {
+    if (!calendarDue) return;
+    const listName = lists.find((l) => l.id === currentListId)?.name;
+    const ics = buildCalendar({
+      name: item.name,
+      events: [
+        {
+          task: { ...item, list_name: listName },
+          due: calendarDue,
+          appUrl: `${window.location.origin}/?list=${currentListId}`,
+        },
+      ],
+    });
+    const href = URL.createObjectURL(
+      new Blob([ics], { type: "text/calendar;charset=utf-8" })
+    );
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = icsFileName(item.name);
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(href), 1000);
   }
 
   function handleDelete() {
@@ -382,6 +414,14 @@ export default function ItemDetailSheet({
         )}
 
         <div className="flex flex-col gap-2 border-t border-[var(--ink-5)] pt-3">
+          {calendarDue && (
+            <button
+              onClick={handleAddToCalendar}
+              className="btn btn-sm btn-ghost w-full"
+            >
+              Add to calendar
+            </button>
+          )}
           {moveTargets.length > 0 &&
             (showMove ? (
               <div className="flex flex-col gap-1">
