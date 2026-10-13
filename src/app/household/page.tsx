@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Hint from "@/components/Hint";
 import InviteButton from "@/components/InviteButton";
 import MemberAvatar from "@/components/MemberAvatar";
-import PageShell, { PageSection, SoonTag } from "@/components/PageShell";
+import RenameHouseholdForm from "@/components/RenameHouseholdForm";
+import PageShell,{ PageSection, SoonTag } from "@/components/PageShell";
 import { loadNavContext } from "@/lib/household";
 import { memberName } from "@/lib/members";
 
@@ -63,9 +64,17 @@ export default async function HouseholdPage() {
         </Hint>
       </PageSection>
 
+      <PageSection title="Name">
+        <RenameHouseholdForm
+          key={household.name}
+          householdId={household.id}
+          name={household.name}
+        />
+      </PageSection>
+
       <PageSection title="Manage">
         <div className="flex items-center justify-between gap-3 text-[var(--fg-2)]">
-          <span className="t-small">Rename, switch or leave household</span>
+          <span className="t-small">Switch or leave household</span>
           <SoonTag />
         </div>
       </PageSection>
