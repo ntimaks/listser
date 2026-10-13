@@ -71,7 +71,23 @@ export default function SettingsDrawer({
     setSettings((s) => (s ? { ...s, ...patch } : s));
 
   return (
-    <Drawer open onClose={onClose} title="Reminders" code="[REM]">
+    <Drawer
+      open
+      onClose={onClose}
+      title="Reminders"
+      code="[REM]"
+      footer={
+        settings && (
+          <button
+            onClick={handleSave}
+            disabled={status === "saving"}
+            className="btn btn-acid w-full"
+          >
+            {status === "saving" ? "Saving…" : "Save"}
+          </button>
+        )
+      }
+    >
       {!settings ? (
         <p className="t-meta py-6 text-center text-[var(--fg-muted)]">
           loading…
@@ -117,16 +133,6 @@ export default function SettingsDrawer({
               {"// "}couldn&rsquo;t save. try again.
             </p>
           )}
-
-          <div className="sticky bottom-0 -mx-[var(--s-4)] border-t border-[var(--ink-0)] bg-[var(--bg-panel)] px-[var(--s-4)] pb-1 pt-3">
-            <button
-              onClick={handleSave}
-              disabled={status === "saving"}
-              className="btn btn-acid w-full"
-            >
-              {status === "saving" ? "Saving…" : "Save"}
-            </button>
-          </div>
         </div>
       )}
     </Drawer>

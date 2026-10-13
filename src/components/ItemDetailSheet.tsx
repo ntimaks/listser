@@ -182,7 +182,21 @@ export default function ItemDetailSheet({
   }
 
   return (
-    <Drawer open onClose={onClose} title="Edit" code="[ITM]">
+    <Drawer
+      open
+      onClose={onClose}
+      title="Edit"
+      code="[ITM]"
+      footer={
+        <button
+          onClick={handleSave}
+          disabled={!name.trim() || repeatInvalid}
+          className="btn btn-acid w-full"
+        >
+          Save
+        </button>
+      }
+    >
       <div className="flex flex-col gap-3">
         <label className="flex flex-col gap-1">
           <span className="t-meta">Name</span>
@@ -398,17 +412,6 @@ export default function ItemDetailSheet({
             className="btn btn-sm btn-ghost w-full active:text-[var(--term-red)]"
           >
             Delete item
-          </button>
-        </div>
-
-        {/* Sticky footer so Save stays reachable above the keyboard. */}
-        <div className="sticky bottom-0 -mx-[var(--s-4)] border-t border-[var(--ink-0)] bg-[var(--bg-panel)] px-[var(--s-4)] pb-1 pt-3">
-          <button
-            onClick={handleSave}
-            disabled={!name.trim() || repeatInvalid}
-            className="btn btn-acid w-full"
-          >
-            Save
           </button>
         </div>
       </div>

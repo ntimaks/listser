@@ -9,6 +9,9 @@ type Props = {
   title: string;
   /** Optional [BRACKETED] stamp on the right of the head, matching card heads. */
   code?: string;
+  /** Pinned action bar (e.g. Save) below the scrollable body, flush with the
+   *  sheet's bottom edge. */
+  footer?: React.ReactNode;
   children: React.ReactNode;
 };
 
@@ -18,7 +21,14 @@ type Props = {
  * over a terminal-style scanline backdrop.
  * Closes on backdrop click and Escape; locks body scroll while open.
  */
-export default function Drawer({ open, onClose, title, code, children }: Props) {
+export default function Drawer({
+  open,
+  onClose,
+  title,
+  code,
+  footer,
+  children,
+}: Props) {
   useEffect(() => {
     if (!open) return;
 
@@ -67,10 +77,6 @@ export default function Drawer({ open, onClose, title, code, children }: Props) 
         aria-label={title}
         className="drawer-sheet panel panel-stamp fixed bottom-0 left-0 right-0 z-50 mx-auto flex max-h-[88dvh] max-w-md flex-col"
       >
-        {/* Grab handle for affordance. */}
-        <div className="flex flex-none justify-center pt-2" aria-hidden>
-          <span className="h-1 w-10 rounded-full bg-[var(--ink-5)]" />
-        </div>
         <div className="panel-head flex-none">
           <span>{title}</span>
           <div className="flex items-center gap-2">
@@ -85,16 +91,29 @@ export default function Drawer({ open, onClose, title, code, children }: Props) 
             </button>
           </div>
         </div>
-        {/* Scrollable body so tall content never overflows the viewport, with
-            safe-area padding for home-indicator phones. */}
+        {/* Scrollable body so tall content never overflows the viewport. With
+            no footer it carries the home-indicator safe-area padding itself. */}
         <div
           className="flex-1 overflow-y-auto overscroll-contain px-[var(--s-4)] pt-[var(--s-4)]"
           style={{
-            paddingBottom: "max(var(--s-6), env(safe-area-inset-bottom))",
+            paddingBottom: footer
+              ? "var(--s-4)"
+              : "max(var(--s-6), env(safe-area-inset-bottom))",
           }}
         >
           {children}
         </div>
+        {/* Outside the scroller, so no padding gap and nothing scrolls under it. */}
+        {footer && (
+          <div
+            className="flex-none border-t border-[var(--ink-0)] bg-[var(--bg-panel)] px-[var(--s-4)] pt-3"
+            style={{
+              paddingBottom: "max(var(--s-4), env(safe-area-inset-bottom))",
+            }}
+          >
+            {footer}
+          </div>
+        )}
       </div>
     </>
   );
