@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Hint from "@/components/Hint";
 import Segmented from "@/components/Segmented";
 import Select from "@/components/Select";
+import { ReminderFormSkeleton } from "@/components/Skeleton";
 import { createClient } from "@/lib/supabase/client";
 import {
   SEND_TIME_OPTIONS,
@@ -64,11 +65,7 @@ export default function ReminderSettingsForm({ userId }: { userId: string }) {
   };
 
   if (!settings) {
-    return (
-      <p className="t-meta py-6 text-center text-[var(--fg-muted)]">
-        loading…
-      </p>
-    );
+    return <ReminderFormSkeleton />;
   }
 
   return (

@@ -1400,11 +1400,29 @@ a.btn:hover {
   }
 }
 
-/* Route loading fallback (app/loading.tsx). */
+/* Loading skeletons (components/Skeleton.tsx). Flat recessed blocks that
+   pulse in steps, no shimmer gradient, per the brand's no-easing rule. */
+.skel {
+  background: color-mix(in srgb, var(--paper-3) 70%, transparent);
+  animation: skel-pulse 1.2s steps(2, jump-none) infinite alternate;
+}
+/* Secondary text placeholders (meta lines, counts) sit closer to the paper. */
+.skel-dim {
+  background: color-mix(in srgb, var(--paper-3) 40%, transparent);
+}
+@keyframes skel-pulse {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.55;
+  }
+}
 .loading-cursor {
   animation: cursor-blink 1s steps(1) infinite;
 }
 @media (prefers-reduced-motion: reduce) {
+  .skel,
   .loading-cursor {
     animation: none;
   }
