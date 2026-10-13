@@ -14,7 +14,12 @@ import ItemRow from "@/components/ItemRow";
 import Drawer from "@/components/Drawer";
 import Hint from "@/components/Hint";
 import Pixl from "@/components/Pixl";
-import { useListItems, makeId, type Item } from "@/lib/useListItems";
+import {
+  useListItems,
+  isInserting,
+  makeId,
+  type Item,
+} from "@/lib/useListItems";
 import {
   groupForStore,
   normalizeName,
@@ -64,7 +69,7 @@ export default function GroceryList({
   templates,
   setTemplates,
 }: Props) {
-  const { addItem, toggleItem, deleteItem } = useListItems(
+  const { addItem, addItems, toggleItem, deleteItem } = useListItems(
     supabase,
     listId,
     userId,
@@ -90,7 +95,7 @@ export default function GroceryList({
   // aisle stats, then deletes the checked items server-side.
   async function finishTrip() {
     const checkedIds = items
-      .filter((i) => i.checked_at && !i.id.startsWith("temp-"))
+      .filter((i) => i.checked_at && !isInserting(i.id))
       .map((i) => i.id);
     if (checkedIds.length === 0) return;
     const before = items;
@@ -131,35 +136,7 @@ export default function GroceryList({
     setShowTemplates(false);
     if (toAdd.length === 0) return;
 
-    const optimisticItems: Item[] = toAdd.map((name) => ({
-      id: `temp-${makeId()}`,
-      name,
-      created_at: new Date().toISOString(),
-      checked_at: null,
-      checked_by: null,
-      created_by: userId,
-      priority: null,
-      price_cents: null,
-      url: null,
-      notes: null,
-      importance: null,
-      effort: null,
-      parent_item_id: null,
-      due_on: null,
-      repeat_every: null,
-      repeat_unit: null,
-      repeat_from: null,
-    }));
-    setItems((prev) => [...prev, ...optimisticItems]);
-
-    const { error } = await supabase.from("list_items").insert(
-      toAdd.map((name) => ({ list_id: listId, name, created_by: userId }))
-    );
-    if (error) {
-      setItems((prev) =>
-        prev.filter((i) => !optimisticItems.some((o) => o.id === i.id))
-      );
-    }
+    await addItems(toAdd.map((name) => ({ name })));
   }
 
   async function handleSaveTemplate() {

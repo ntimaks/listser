@@ -1,6 +1,6 @@
 "use client";
 
-import type { Dispatch, SetStateAction } from "react";
+import { useSyncExternalStore, type Dispatch, type SetStateAction } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DueFields, ItemPatch } from "@/lib/recurrence";
 
@@ -40,13 +40,61 @@ export type ItemExtras = Partial<
   >
 >;
 
-// crypto.randomUUID() only exists in secure contexts (https / localhost), so
-// it's undefined when testing over http on a LAN IP. Fall back to a simple id.
+// A v4 uuid, usable as a row id. crypto.randomUUID() only exists in secure
+// contexts (https / localhost), so it's undefined when testing over http on a
+// LAN IP; getRandomValues works everywhere.
 export function makeId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(
+    16,
+    20
+  )}-${h.slice(20)}`;
+}
+
+// Inserts still on their way to the server, by item id. Ids are made here
+// rather than by the database, so a new row can be checked off, edited or
+// deleted right away: those writes wait for its insert first. Each promise
+// resolves to whether the insert saved.
+const inserting = new Map<string, Promise<boolean>>();
+const insertListeners = new Set<() => void>();
+
+function trackInserts(ids: string[], done: Promise<boolean>) {
+  for (const id of ids) inserting.set(id, done);
+  insertListeners.forEach((l) => l());
+  done.finally(() => {
+    for (const id of ids) inserting.delete(id);
+    insertListeners.forEach((l) => l());
+  });
+}
+
+/** Whether this item's insert hasn't reached the server yet. */
+export function isInserting(id: string) {
+  return inserting.has(id);
+}
+
+/** isInserting, re-rendering when it changes. */
+export function useInserting(id: string) {
+  return useSyncExternalStore(
+    (l) => {
+      insertListeners.add(l);
+      return () => insertListeners.delete(l);
+    },
+    () => inserting.has(id),
+    () => false
+  );
+}
+
+// The ids whose rows exist on the server, once any pending inserts settle. A
+// row whose insert failed is gone from the list already, so writes skip it.
+async function saved(ids: (string | null)[]) {
+  const ok = await Promise.all(
+    ids.map((id) => (id && inserting.get(id)) || true)
+  );
+  return ids.filter((id, k): id is string => id != null && ok[k]);
 }
 
 // ISO-ish datestamp, logbook style: 26.06.15
@@ -84,23 +132,11 @@ function blankExtras(): Pick<
   };
 }
 
-// Fold a realtime INSERT into a list's items. Optimistic rows use temp ids,
-// so a server row either replaces its temp twin (matched by name + creator +
-// parent) or is appended.
+// Fold a realtime INSERT into a list's items. Optimistic rows carry their real
+// id, so our own inserts echo back as rows we already hold; those keep their
+// local state, which may include edits made since.
 export function reconcileInsert(prev: Item[], row: Item): Item[] {
   if (prev.some((i) => i.id === row.id)) return prev;
-  const tempIdx = prev.findIndex(
-    (i) =>
-      i.id.startsWith("temp-") &&
-      i.name === row.name &&
-      i.created_by === row.created_by &&
-      i.parent_item_id === row.parent_item_id
-  );
-  if (tempIdx !== -1) {
-    const next = [...prev];
-    next[tempIdx] = row;
-    return next;
-  }
   return [...prev, row];
 }
 
@@ -117,44 +153,57 @@ export function useListItems(
   items: Item[],
   setItems: Dispatch<SetStateAction<Item[]>>
 ) {
-  async function addItem(name: string, extras: ItemExtras = {}) {
-    const trimmed = name.trim();
-    if (!trimmed) return;
+  // Add several items in one insert (a template, or a single add). Optimistic
+  // with rollback; the rows carry their final ids from the start.
+  async function addItems(entries: { name: string; extras?: ItemExtras }[]) {
+    const now = new Date().toISOString();
+    const rows = entries
+      .map(({ name, extras = {} }) => ({
+        id: makeId(),
+        name: name.trim(),
+        ...extras,
+      }))
+      .filter((r) => r.name);
+    if (rows.length === 0) return;
 
-    const tempId = `temp-${makeId()}`;
-    const optimistic: Item = {
-      id: tempId,
-      name: trimmed,
-      created_at: new Date().toISOString(),
-      checked_at: null,
-      checked_by: null,
-      created_by: userId,
-      ...blankExtras(),
-      ...extras,
-    };
-    setItems((prev) => [...prev, optimistic]);
+    const ids = rows.map((r) => r.id);
+    setItems((prev) => [
+      ...prev,
+      ...rows.map((r) => ({
+        created_at: now,
+        checked_at: null,
+        checked_by: null,
+        created_by: userId,
+        ...blankExtras(),
+        ...r,
+      })),
+    ]);
 
-    const { data, error } = await supabase
-      .from("list_items")
-      .insert({ list_id: listId, name: trimmed, created_by: userId, ...extras })
-      .select()
-      .single();
+    const done = (async () => {
+      // A subtask's parent may itself still be on its way.
+      const parents = rows.map((r) => r.parent_item_id ?? null);
+      const parentsSaved = await saved(parents);
+      if (parentsSaved.length < parents.filter(Boolean).length) return false;
+      const { error } = await supabase
+        .from("list_items")
+        .insert(
+          rows.map((r) => ({ ...r, list_id: listId, created_by: userId }))
+        );
+      return !error;
+    })();
+    trackInserts(ids, done);
 
-    if (error) {
-      setItems((prev) => prev.filter((i) => i.id !== tempId));
-      return;
-    }
-    if (data) {
-      setItems((prev) =>
-        prev.some((i) => i.id === data.id)
-          ? prev.filter((i) => i.id !== tempId)
-          : prev.map((i) => (i.id === tempId ? (data as Item) : i))
-      );
+    if (!(await done)) {
+      const idSet = new Set(ids);
+      setItems((prev) => prev.filter((i) => !idSet.has(i.id)));
     }
   }
 
+  async function addItem(name: string, extras: ItemExtras = {}) {
+    await addItems([{ name, extras }]);
+  }
+
   async function toggleItem(item: Item) {
-    if (item.id.startsWith("temp-")) return;
     const checking = !item.checked_at;
     const patch = {
       checked_at: checking ? new Date().toISOString() : null,
@@ -165,6 +214,7 @@ export function useListItems(
       prev.map((i) => (i.id === item.id ? { ...i, ...patch } : i))
     );
 
+    if ((await saved([item.id])).length === 0) return;
     const { error } = await supabase
       .from("list_items")
       .update(patch)
@@ -179,11 +229,9 @@ export function useListItems(
   // all its children, and reopening a parent flips just the parent. Optimistic
   // with rollback; checked/unchecked rows are grouped into one update each.
   async function setChecked(updates: { id: string; checked: boolean }[]) {
-    const real = updates.filter((u) => !u.id.startsWith("temp-"));
-    if (real.length === 0) return;
-
+    if (updates.length === 0) return;
     const now = new Date().toISOString();
-    const byId = new Map(real.map((u) => [u.id, u.checked]));
+    const byId = new Map(updates.map((u) => [u.id, u.checked]));
     const before = items;
     setItems((prev) =>
       prev.map((i) =>
@@ -197,8 +245,9 @@ export function useListItems(
       )
     );
 
-    const checkedIds = real.filter((u) => u.checked).map((u) => u.id);
-    const uncheckedIds = real.filter((u) => !u.checked).map((u) => u.id);
+    const ids = await saved(updates.map((u) => u.id));
+    const checkedIds = ids.filter((id) => byId.get(id));
+    const uncheckedIds = ids.filter((id) => !byId.get(id));
     const results = await Promise.all([
       checkedIds.length
         ? supabase
@@ -219,10 +268,10 @@ export function useListItems(
   // Edit an item's fields (name / price / url / notes / due date…) from the
   // detail sheet. Optimistic with rollback; resolves to whether it saved.
   async function updateItem(id: string, patch: Partial<Item>) {
-    if (id.startsWith("temp-")) return false;
     const before = items;
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
 
+    if ((await saved([id])).length === 0) return false;
     const { error } = await supabase
       .from("list_items")
       .update(patch)
@@ -235,19 +284,17 @@ export function useListItems(
   // planRollover. Rows sharing an identical patch go out as one update.
   // Optimistic with rollback.
   async function patchItems(updates: ItemPatch[]) {
-    const real = updates.filter((u) => !u.id.startsWith("temp-"));
-    if (real.length === 0) return;
-
-    const byId = new Map(real.map((u) => [u.id, u.patch]));
+    if (updates.length === 0) return;
+    const byId = new Map(updates.map((u) => [u.id, u.patch]));
     const before = items;
     setItems((prev) =>
       prev.map((i) => (byId.has(i.id) ? { ...i, ...byId.get(i.id) } : i))
     );
 
     const groups = new Map<string, string[]>();
-    for (const u of real) {
-      const key = JSON.stringify(u.patch);
-      groups.set(key, [...(groups.get(key) ?? []), u.id]);
+    for (const id of await saved(updates.map((u) => u.id))) {
+      const key = JSON.stringify(byId.get(id));
+      groups.set(key, [...(groups.get(key) ?? []), id]);
     }
     const results = await Promise.all(
       [...groups].map(([key, ids]) =>
@@ -261,12 +308,11 @@ export function useListItems(
   // too: the DB cascade handles the server, and we mirror it locally so the
   // children don't flash before their realtime DELETE events arrive.
   async function deleteItem(item: Item) {
-    if (item.id.startsWith("temp-")) return;
     const before = items;
     setItems((prev) =>
       prev.filter((i) => i.id !== item.id && i.parent_item_id !== item.id)
     );
-    const { error } = await supabase
+    if ((await saved([item.id])).length === 0) return;    const { error } = await supabase
       .from("list_items")
       .delete()
       .eq("id", item.id);
@@ -277,9 +323,8 @@ export function useListItems(
   // Grocery clears via finishTrip/record_trip instead. Children of a cleared
   // parent go with it (DB cascade) so mirror that in the optimistic filter.
   async function deleteItems(ids: string[]) {
-    const realIds = ids.filter((id) => !id.startsWith("temp-"));
-    if (realIds.length === 0) return;
-    const idSet = new Set(realIds);
+    if (ids.length === 0) return;
+    const idSet = new Set(ids);
     const before = items;
     setItems((prev) =>
       prev.filter(
@@ -289,6 +334,8 @@ export function useListItems(
       )
     );
 
+    const realIds = await saved(ids);
+    if (realIds.length === 0) return;
     const { error } = await supabase
       .from("list_items")
       .delete()
@@ -302,9 +349,9 @@ export function useListItems(
   // channel, and satisfies the insert RLS (the mover inserts as themselves).
   // Notes are preserved; checked state and wishlist-only fields are dropped.
   async function moveItem(item: Item, targetListId: string) {
-    if (item.id.startsWith("temp-")) return;
     const before = items;
     setItems((prev) => prev.filter((i) => i.id !== item.id));
+    if ((await saved([item.id])).length === 0) return;
 
     const { error: insertError } = await supabase.from("list_items").insert({
       list_id: targetListId,
@@ -333,6 +380,7 @@ export function useListItems(
     items,
     setItems,
     addItem,
+    addItems,
     toggleItem,
     setChecked,
     updateItem,

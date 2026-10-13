@@ -1,7 +1,7 @@
 "use client";
 
 import type { Item } from "@/lib/useListItems";
-import { stamp } from "@/lib/useListItems";
+import { stamp, useInserting } from "@/lib/useListItems";
 import {
   type ListType,
   formatPrice,
@@ -47,7 +47,8 @@ export default function ItemRow({
   today?: string | null;
 }) {
   const checked = Boolean(item.checked_at);
-  const pending = item.id.startsWith("temp-");
+  // Dimmed until the server has it; it still takes taps meanwhile.
+  const pending = useInserting(item.id);
 
   const checkbox = (
     <span aria-hidden className={`checkbox ${checked ? "is-checked" : ""}`}>
@@ -64,7 +65,6 @@ export default function ItemRow({
   const deleteButton = (
     <button
       onClick={() => onDelete(item)}
-      disabled={pending}
       aria-label={`Delete ${item.name}`}
       className="shrink-0 px-3 py-3 text-[var(--fg-disabled)] active:text-[var(--term-red)]"
     >
