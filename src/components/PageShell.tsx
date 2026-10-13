@@ -3,8 +3,9 @@ import Link from "next/link";
 type Back = { href: string; name: string };
 type Crumb = { href: string; label: string };
 
-// Wrapper for the menu and the pages it opens: a breadcrumb strip from your
-// list down to this page, ← one level up, ✕ straight back to the list.
+// Wrapper for the menu and the pages it opens: a breadcrumb strip from the
+// menu down to this page (the menu sits beside your lists, not under one),
+// ← one level up, ✕ straight back to the list you came from.
 export default function PageShell({
   title,
   back,
@@ -24,12 +25,6 @@ export default function PageShell({
         <nav aria-label="Breadcrumb" className="term-strip">
           <span aria-hidden className="shrink-0">
             &gt;
-          </span>
-          <Link href={back.href} className="min-w-0 truncate">
-            {back.name}
-          </Link>
-          <span aria-hidden className="term-strip-dim shrink-0">
-            /
           </span>
           {parent && (
             <>

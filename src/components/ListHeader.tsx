@@ -65,7 +65,7 @@ export default function ListHeader({
           <Link
             href="/household"
             aria-label={`Household: ${members.map((m) => memberName(m.email)).join(", ")}`}
-            className="flex shrink-0 items-center py-1 no-underline!"
+            className="link-avatars flex shrink-0 items-center py-1"
           >
             {shown.map((m, i) => (
               <MemberAvatar
