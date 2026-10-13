@@ -17,6 +17,20 @@ export async function createHousehold(formData: FormData) {
   redirect("/");
 }
 
+export async function renameHousehold(householdId: string, name: string) {
+  const trimmed = name.trim();
+  if (!trimmed || trimmed.length > 80) throw new Error("invalid name");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("rename_household", {
+    p_household_id: householdId,
+    p_name: trimmed,
+  });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/", "layout");
+}
+
 export async function createList(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const householdId = String(formData.get("household_id") ?? "");
