@@ -16,6 +16,7 @@ type TypeCopy = {
   emptyState: string;
   checkedHeading: string; // bracketed heading for the done/checked section
   clearLabel: string; // button that clears the done section
+  openNoun: string; // "5 to buy" — what an unchecked item counts as
 };
 
 export const COPY: Record<ListType, TypeCopy> = {
@@ -27,6 +28,7 @@ export const COPY: Record<ListType, TypeCopy> = {
       "// nothing added yet. add the first thing you would forget.",
     checkedHeading: "IN CART",
     clearLabel: "[DONE]",
+    openNoun: "to buy",
   },
   todo: {
     label: "To-do",
@@ -35,6 +37,7 @@ export const COPY: Record<ListType, TypeCopy> = {
     emptyState: "// all clear. add your first task.",
     checkedHeading: "DONE",
     clearLabel: "[CLEAR]",
+    openNoun: "open",
   },
   wishlist: {
     label: "Wishlist",
@@ -43,6 +46,7 @@ export const COPY: Record<ListType, TypeCopy> = {
     emptyState: "// your wishlist is empty. add something you want.",
     checkedHeading: "GOT IT",
     clearLabel: "[CLEAR]",
+    openNoun: "wanted",
   },
 };
 

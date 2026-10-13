@@ -486,6 +486,38 @@ hr,
   text-transform: uppercase;
   color: var(--ink-3);
 }
+/* TERM STRIP — the dark terminal band on top of the list header and the menu
+   pages. Fixed term colors, so it stays dark in both themes. */
+.term-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 36px;
+  padding: 2px var(--s-2) 2px 10px;
+  background: var(--term-bg);
+  color: var(--term-fg);
+  border-bottom: var(--bw-1) solid var(--ink-0);
+  font-family: var(--ff-pixel);
+  font-size: var(--fs-lg);
+  line-height: 1;
+  letter-spacing: var(--tr-wide);
+  text-transform: uppercase;
+}
+.term-strip a {
+  color: var(--term-fg);
+}
+.term-strip-dim {
+  color: var(--term-dim);
+}
+/* A whole row or card that is a link: no underline, recessed on hover. */
+a.link-plain {
+  color: var(--fg);
+  text-decoration: none;
+}
+a.link-plain:hover {
+  background: var(--paper-2);
+  color: var(--fg);
+}
 
 /* ---------- ITEM ROWS (hairline-divided list) ---------- */
 .item-row {

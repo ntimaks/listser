@@ -1,8 +1,15 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createHousehold } from "./actions";
+import ListHeader from "@/components/ListHeader";
 import ShoppingList from "@/components/ShoppingList";
-import type { Member } from "@/lib/reminders";
+import {
+  fetchHousehold,
+  fetchLists,
+  fetchMembers,
+  fetchOpenCounts,
+  lastListId,
+} from "@/lib/household";
 
 async function fetchAisleStats(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -40,15 +47,7 @@ export default async function Home({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: memberships } = await supabase
-    .from("household_members")
-    .select("household_id, households(id, name, invite_code)")
-    .order("joined_at", { ascending: true })
-    .limit(1);
-
-  const household = memberships?.[0]?.households as unknown as
-    | { id: string; name: string; invite_code: string }
-    | undefined;
+  const household = await fetchHousehold(supabase);
 
   if (!household) {
     return (
@@ -84,21 +83,14 @@ export default async function Home({
     );
   }
 
-  const { data } = await supabase
-    .from("lists")
-    .select("id, name, store_name, type")
-    .eq("household_id", household.id)
-    .order("created_at", { ascending: true });
-
-  const lists = (data ?? []) as {
-    id: string;
-    name: string;
-    store_name: string | null;
-    type: "grocery" | "todo" | "wishlist";
-  }[];
-  // Fall back to the first list when the ?list= param is missing or stale.
+  const lists = await fetchLists(supabase, household.id);
+  // Without a valid ?list=, reopen the list you were last on, else the first.
   const { list: requestedId } = await searchParams;
-  const list = lists.find((l) => l.id === requestedId) ?? lists[0];
+  const lastId = await lastListId();
+  const list =
+    lists.find((l) => l.id === requestedId) ??
+    lists.find((l) => l.id === lastId) ??
+    lists[0];
   if (!list) {
     return (
       <main className="flex min-h-dvh items-center justify-center px-6">
@@ -138,13 +130,12 @@ export default async function Home({
     }));
   }
 
-  // Household members, for picking who a to-do reminds.
-  const { data: members } =
-    list.type === "todo"
-      ? await supabase.rpc("household_member_list", {
-          p_household_id: household.id,
-        })
-      : { data: [] };
+  // Household members: avatars in the header, and who a to-do reminds.
+  const members = await fetchMembers(supabase, household.id);
+  const openCounts = await fetchOpenCounts(
+    supabase,
+    lists.map((l) => l.id)
+  );
 
   // Aisle stats and templates are grocery-only; skip the round-trips otherwise.
   const isGrocery = list.type === "grocery";
@@ -169,19 +160,26 @@ export default async function Home({
     <ShoppingList
       key={list.id}
       listId={list.id}
-      listName={list.name}
-      listStoreName={list.store_name ?? null}
       listType={list.type}
+      header={
+        <ListHeader
+          lists={lists}
+          activeListId={list.id}
+          openCounts={openCounts}
+          householdId={household.id}
+          householdName={household.name}
+          members={members}
+          userId={user.id}
+        />
+      }
       lists={lists}
       householdId={household.id}
-      householdName={household.name}
-      inviteCode={household.invite_code}
       userId={user.id}
       initialItems={items ?? []}
       initialStats={stats}
       initialBuyAgain={buyAgain}
       initialTemplates={templates}
-      members={(members ?? []) as Member[]}
+      members={members}
     />
   );
 }

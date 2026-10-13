@@ -8,20 +8,13 @@ import { createList, deleteList } from "@/app/actions";
 import Drawer from "@/components/Drawer";
 import Hint from "@/components/Hint";
 import { COPY, LIST_TYPES, type ListType } from "@/lib/listTypes";
-
-type ListSummary = {
-  id: string;
-  name: string;
-  store_name: string | null;
-  type: ListType;
-};
+import type { ListSummary } from "@/lib/household";
 
 type Props = {
   lists: ListSummary[];
   activeListId: string;
-  activeListName: string;
-  activeListStoreName: string | null;
-  activeListType: ListType;
+  /** Unchecked items per list, as of page load. */
+  openCounts: Record<string, number>;
   householdId: string;
 };
 
@@ -48,9 +41,7 @@ function CreateSubmit() {
 export default function ListSwitcher({
   lists,
   activeListId,
-  activeListName,
-  activeListStoreName,
-  activeListType,
+  openCounts,
   householdId,
 }: Props) {
   const router = useRouter();
@@ -119,28 +110,39 @@ export default function ListSwitcher({
   }
 
   const canDelete = lists.length > 1;
+  const activeIndex = Math.max(
+    0,
+    lists.findIndex((l) => l.id === activeListId)
+  );
+  const active = lists[activeIndex];
 
   return (
-    <div className="min-w-0">
+    <div className="flex min-w-0 flex-1">
+      {/* The whole name block is the switcher; the lime end says what it does. */}
       <button
         onClick={() => setOpen(true)}
         aria-expanded={open}
         aria-haspopup="dialog"
-        className="t-h3 flex min-h-11 w-full min-w-0 items-center gap-1.5 text-left uppercase leading-tight tracking-tight active:opacity-70"
+        aria-label={`Switch list. Current: ${active?.name ?? ""}`}
+        className="flex min-w-0 flex-1 items-stretch border border-[var(--ink-0)] bg-[var(--paper-0)] text-left text-[var(--fg)] shadow-[var(--sh-stamp)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
       >
-        <span className="t-stamp shrink-0 text-[var(--fg-muted)]">
-          {COPY[activeListType].tag}
-        </span>
-        <span className="min-w-0 truncate">
-          {activeListName}
-          {activeListStoreName && (
-            <span className="ml-1.5 text-sm font-normal text-[var(--fg-disabled)]">
-              {activeListStoreName}
+        <span className="flex min-w-0 flex-1 flex-col gap-1 px-2.5 py-2">
+          {active && (
+            <span className="t-meta truncate">
+              {COPY[active.type].label}
+              {active.store_name && ` · ${active.store_name}`} ·{" "}
+              {activeIndex + 1}/{lists.length}
             </span>
           )}
+          <span className="font-[family-name:var(--ff-display)] text-[22px] leading-[1.1] font-bold tracking-tight uppercase [overflow-wrap:anywhere]">
+            {active?.name}
+          </span>
         </span>
-        <span aria-hidden className="shrink-0 text-xs text-[var(--fg-muted)]">
-          ▾
+        <span className="flex w-[52px] shrink-0 flex-col items-center justify-center gap-0.5 border-l border-[var(--ink-0)] bg-[var(--acid)] text-[var(--on-acid)]">
+          <span aria-hidden className="text-base leading-none">
+            ⇅
+          </span>
+          <span className="text-[9px] font-bold tracking-[0.1em]">LISTS</span>
         </span>
       </button>
 
@@ -151,59 +153,76 @@ export default function ListSwitcher({
         code={String(lists.length).padStart(2, "0")}
       >
         <div className="-mx-[var(--s-4)] -mt-[var(--s-4)]">
-          <ul className="flex flex-col">
-            {lists.map((list) => {
-              const active = list.id === activeListId;
-              return (
-                <li key={list.id} className="flex items-stretch">
-                  <Link
-                    href={`/?list=${list.id}`}
-                    prefetch={false}
-                    // Switching to another list keeps the menu open so the
-                    // NavHint is visible; the page remount on arrival resets it.
-                    // Tapping the active list just closes the menu (no nav).
-                    onClick={() => {
-                      if (active) close();
-                    }}
-                    className={`flex min-w-0 flex-1 items-center gap-2 border-b border-[var(--ink-5)] px-4 py-3.5 text-[var(--fg)] no-underline! hover:bg-[var(--paper-2)]! hover:text-[var(--fg)]! active:bg-[var(--paper-2)] ${
-                      active ? "font-bold" : ""
-                    }`}
-                  >
-                    <span className="t-stamp shrink-0 text-[var(--fg-muted)]">
-                      {COPY[list.type].tag}
-                    </span>
-                    <span className="flex-1 truncate uppercase tracking-wide">
-                      {list.name}
-                      {list.store_name && (
-                        <span className="ml-1.5 normal-case tracking-normal text-[var(--fg-2)]">
-                          {list.store_name}
-                        </span>
-                      )}
-                    </span>
-                    {active ? (
-                      <span
-                        aria-hidden
-                        className="text-sm text-[var(--cobalt)]"
+          {LIST_TYPES.map((type) => {
+            const group = lists.filter((l) => l.type === type);
+            if (group.length === 0) return null;
+            return (
+              <section key={type}>
+                <h3 className="t-meta border-b border-[var(--ink-5)] bg-[var(--paper-2)] px-4 py-1.5">
+                  {COPY[type].label}
+                </h3>
+                <ul className="flex flex-col">
+                  {group.map((list) => {
+                    const active = list.id === activeListId;
+                    const openCount = openCounts[list.id] ?? 0;
+                    return (
+                      <li
+                        key={list.id}
+                        className={`flex items-stretch ${active ? "bg-[var(--acid)] text-[var(--on-acid)]" : ""}`}
                       >
-                        ▸
-                      </span>
-                    ) : (
-                      <NavHint />
-                    )}
-                  </Link>
-                  {canDelete && (
-                    <button
-                      onClick={() => requestDelete(list)}
-                      aria-label={`Delete ${list.name}`}
-                      className="flex w-12 shrink-0 items-center justify-center border-b border-[var(--ink-5)] text-sm text-[var(--fg-disabled)] active:text-[var(--term-red)]"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+                        <Link
+                          href={`/?list=${list.id}`}
+                          prefetch={false}
+                          // Switching to another list keeps the menu open so the
+                          // NavHint is visible; the page remount on arrival resets it.
+                          // Tapping the active list just closes the menu (no nav).
+                          onClick={() => {
+                            if (active) close();
+                          }}
+                          aria-current={active ? "page" : undefined}
+                          className={`flex min-h-14 min-w-0 flex-1 items-center gap-2 border-b border-[var(--ink-5)] px-4 py-2 no-underline! ${
+                            active
+                              ? "text-[var(--on-acid)] hover:bg-[var(--acid)]! hover:text-[var(--on-acid)]!"
+                              : "text-[var(--fg)] hover:bg-[var(--paper-2)]! hover:text-[var(--fg)]! active:bg-[var(--paper-2)]"
+                          }`}
+                        >
+                          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                            <span className="font-bold tracking-wide uppercase [overflow-wrap:anywhere]">
+                              {list.name}
+                            </span>
+                            <span className="t-small opacity-80">
+                              {list.store_name && `${list.store_name} · `}
+                              {/* The active list's count would be stale once
+                                  you add items, so it just says you're on it. */}
+                              {active ? "open now" : `${openCount} ${COPY[type].openNoun}`}
+                            </span>
+                          </span>
+                          {active ? (
+                            <span aria-hidden className="text-sm">
+                              ●
+                            </span>
+                          ) : (
+                            <NavHint />
+                          )}
+                        </Link>
+                        {canDelete && (
+                          <button
+                            onClick={() => requestDelete(list)}
+                            aria-label={`Delete ${list.name}`}
+                            className={`flex w-12 shrink-0 items-center justify-center border-b border-l border-[var(--ink-5)] text-sm active:text-[var(--term-red)] ${
+                              active ? "text-[var(--on-acid)]" : "text-[var(--fg-2)]"
+                            }`}
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            );
+          })}
 
           <div className="p-3">
             {creating ? (

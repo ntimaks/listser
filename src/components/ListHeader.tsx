@@ -1,60 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { signOut } from "@/app/actions";
-import Drawer from "@/components/Drawer";
+import Link from "next/link";
+import { useEffect } from "react";
 import ListSwitcher from "@/components/ListSwitcher";
+import MemberAvatar from "@/components/MemberAvatar";
 import Pixl from "@/components/Pixl";
-import SettingsDrawer from "@/components/SettingsDrawer";
-import ThemeToggle from "@/components/ThemeToggle";
 import { createClient } from "@/lib/supabase/client";
-import { detectTimeZone } from "@/lib/reminders";
-import { stamp } from "@/lib/useListItems";
-import type { ListType } from "@/lib/listTypes";
+import { rememberList } from "@/lib/lastList";
+import { memberName } from "@/lib/members";
+import { detectTimeZone, type Member } from "@/lib/reminders";
+import type { ListSummary } from "@/lib/household";
 
-type ListSummary = {
-  id: string;
-  name: string;
-  store_name: string | null;
-  type: ListType;
-};
+const MAX_AVATARS = 4;
 
-const BAND_LABEL: Record<ListType, string> = {
-  grocery: "SHOPPING LOG",
-  todo: "TASK LOG",
-  wishlist: "WISH LOG",
-};
-
-// Logbook header band shared by every list view: the panel-head strip, the list
-// switcher and household name, plus a menu sheet with invite, reminder
-// settings, theme, sign-out.
+// Header shared by every list view: a terminal strip with the household and
+// its members, the list switcher, and the button to the full-screen menu.
 export default function ListHeader({
   lists,
   activeListId,
-  activeListName,
-  activeListStoreName,
-  activeListType,
+  openCounts,
   householdId,
   householdName,
-  inviteCode,
+  members,
   userId,
-  itemCount,
 }: {
   lists: ListSummary[];
   activeListId: string;
-  activeListName: string;
-  activeListStoreName: string | null;
-  activeListType: ListType;
+  openCounts: Record<string, number>;
   householdId: string;
   householdName: string;
-  inviteCode: string;
+  members: Member[];
   userId: string;
-  itemCount: number;
 }) {
-  const [invited, setInvited] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-
   // Give every user a settings row with their browser's timezone, so reminders
   // go out at the right local time even if they never open the settings.
   // Leaves an existing row alone.
@@ -68,103 +45,68 @@ export default function ListHeader({
       .then(() => {});
   }, [userId]);
 
-  async function shareInvite() {
-    const url = `${window.location.origin}/join/${inviteCode}`;
-    const text = `Join "${householdName}" on Listser: ${url}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "Listser", text, url });
-        return;
-      } catch {
-        // fall through to clipboard (user may have dismissed the sheet)
-      }
-    }
-    await navigator.clipboard.writeText(url);
-    setInvited(true);
-    setTimeout(() => setInvited(false), 2000);
-  }
+  // The menu pages link back here, and the app reopens here.
+  useEffect(() => {
+    rememberList(activeListId);
+  }, [activeListId]);
+
+  const me = members.find((m) => m.user_id === userId);
+  const shown = members.slice(0, MAX_AVATARS);
+  const hidden = members.length - shown.length;
 
   return (
     <header className="panel mt-3">
-      <div className="panel-head">
+      <div className="term-strip justify-between">
         <span className="flex min-w-0 items-center gap-1.5">
           <Pixl motion="idle" size={11} title="Pixl, the resident" />
-          <span className="truncate">
-            LISTSER // {BAND_LABEL[activeListType]}
-          </span>
+          <span className="truncate">LISTSER // {householdName}</span>
         </span>
-        <span className="shrink-0">
-          <span className="hidden sm:inline">
-            {stamp(new Date().toISOString())} ·{" "}
-          </span>
-          {itemCount} {itemCount === 1 ? "ITEM" : "ITEMS"}
-        </span>
+        {members.length > 0 && (
+          <Link
+            href="/household"
+            aria-label={`Household: ${members.map((m) => memberName(m.email)).join(", ")}`}
+            className="flex shrink-0 items-center py-1 no-underline!"
+          >
+            {shown.map((m, i) => (
+              <MemberAvatar
+                key={m.user_id}
+                userId={m.user_id}
+                email={m.email}
+                size={22}
+                className={i > 0 ? "-ml-1" : ""}
+              />
+            ))}
+            {hidden > 0 && (
+              <span className="-ml-1 flex h-[22px] min-w-[22px] items-center justify-center border border-[var(--ink-0)] bg-[var(--paper-1)] px-0.5 font-[family-name:var(--ff-mono)] text-[9px] font-bold text-[var(--fg)]">
+                +{hidden}
+              </span>
+            )}
+          </Link>
+        )}
       </div>
-      <div className="flex items-center gap-2 py-1.5 pl-3 pr-1.5">
-        <div className="min-w-0 flex-1">
-          <ListSwitcher
-            lists={lists}
-            activeListId={activeListId}
-            activeListName={activeListName}
-            activeListStoreName={activeListStoreName}
-            activeListType={activeListType}
-            householdId={householdId}
-          />
-          <p className="t-meta mt-0.5 truncate">▸ {householdName}</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setMenuOpen(true)}
+
+      <div className="flex items-stretch gap-2 p-2.5">
+        <ListSwitcher
+          lists={lists}
+          activeListId={activeListId}
+          openCounts={openCounts}
+          householdId={householdId}
+        />
+        <Link
+          href="/menu"
           aria-label="Menu"
-          aria-expanded={menuOpen}
-          className="flex h-11 w-11 shrink-0 items-center justify-center border border-[var(--ink-0)] text-lg active:bg-[var(--paper-2)]"
+          className="link-plain flex w-[52px] shrink-0 flex-col items-center justify-center gap-1 border border-[var(--ink-0)] bg-[var(--paper-0)] py-1.5"
         >
-          ≡
-        </button>
+          {me ? (
+            <MemberAvatar userId={me.user_id} email={me.email} size={30} />
+          ) : (
+            <span aria-hidden className="text-lg leading-none">
+              ≡
+            </span>
+          )}
+          <span className="text-[9px] font-bold tracking-[0.1em]">MENU</span>
+        </Link>
       </div>
-
-      <Drawer open={menuOpen} onClose={() => setMenuOpen(false)} title="MENU">
-        <div className="flex flex-col gap-5">
-          <section className="flex flex-col gap-2">
-            <p className="t-meta">Household</p>
-            <p className="t-h3 truncate uppercase">{householdName}</p>
-            <p className="t-small text-[var(--fg-2)]">
-              {"// "}changes sync live for everyone in the household.
-            </p>
-            <button onClick={shareInvite} className="btn w-full">
-              {invited ? "[LINK COPIED]" : "[INVITE PEOPLE]"}
-            </button>
-          </section>
-
-          <section className="flex flex-col gap-2">
-            <p className="t-meta">Reminders</p>
-            <button
-              onClick={() => {
-                setMenuOpen(false);
-                setSettingsOpen(true);
-              }}
-              className="btn w-full"
-            >
-              [EMAIL REMINDERS]
-            </button>
-          </section>
-
-          <section className="flex flex-col gap-2">
-            <p className="t-meta">Theme</p>
-            <ThemeToggle />
-          </section>
-
-          <form action={signOut}>
-            <button type="submit" className="btn btn-danger w-full">
-              [SIGN OUT]
-            </button>
-          </form>
-        </div>
-      </Drawer>
-
-      {settingsOpen && (
-        <SettingsDrawer userId={userId} onClose={() => setSettingsOpen(false)} />
-      )}
     </header>
   );
 }

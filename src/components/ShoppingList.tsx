@@ -1,8 +1,10 @@
+import type { ReactNode } from "react";
 import GroceryList from "@/components/GroceryList";
 import SimpleList from "@/components/SimpleList";
 import type { Item } from "@/lib/useListItems";
 import type { ItemStat, BuyAgainItem } from "@/lib/categories";
 import type { ListType } from "@/lib/listTypes";
+import type { ListSummary } from "@/lib/household";
 import type { Member } from "@/lib/reminders";
 
 type Template = {
@@ -11,22 +13,12 @@ type Template = {
   template_items: { item_name: string; sort_order: number }[];
 };
 
-type ListSummary = {
-  id: string;
-  name: string;
-  store_name: string | null;
-  type: ListType;
-};
-
 type Props = {
   listId: string;
-  listName: string;
-  listStoreName: string | null;
   listType: ListType;
+  header: ReactNode;
   lists: ListSummary[];
   householdId: string;
-  householdName: string;
-  inviteCode: string;
   userId: string;
   initialItems: Item[];
   initialStats: ItemStat[];
@@ -43,12 +35,8 @@ export default function ShoppingList(props: Props) {
     return (
       <GroceryList
         listId={props.listId}
-        listName={props.listName}
-        listStoreName={props.listStoreName}
-        lists={props.lists}
+        header={props.header}
         householdId={props.householdId}
-        householdName={props.householdName}
-        inviteCode={props.inviteCode}
         userId={props.userId}
         initialItems={props.initialItems}
         initialStats={props.initialStats}
@@ -62,11 +50,8 @@ export default function ShoppingList(props: Props) {
     <SimpleList
       type={props.listType}
       listId={props.listId}
-      listName={props.listName}
+      header={props.header}
       lists={props.lists}
-      householdId={props.householdId}
-      householdName={props.householdName}
-      inviteCode={props.inviteCode}
       userId={props.userId}
       initialItems={props.initialItems}
       members={props.members}

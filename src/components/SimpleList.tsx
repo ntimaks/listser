@@ -1,7 +1,13 @@
 "use client";
 
-import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import ListHeader from "@/components/ListHeader";
+import {
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import ItemRow from "@/components/ItemRow";
 import SubtaskGroup from "@/components/SubtaskGroup";
 import ItemDetailSheet from "@/components/ItemDetailSheet";
@@ -23,11 +29,9 @@ type ListSummary = {
 type Props = {
   type: "todo" | "wishlist";
   listId: string;
-  listName: string;
+  /** The list header, built by the page. */
+  header: ReactNode;
   lists: ListSummary[];
-  householdId: string;
-  householdName: string;
-  inviteCode: string;
   userId: string;
   initialItems: Item[];
   members?: Member[];
@@ -38,11 +42,8 @@ type Props = {
 export default function SimpleList({
   type,
   listId,
-  listName,
+  header,
   lists,
-  householdId,
-  householdName,
-  inviteCode,
   userId,
   initialItems,
   members = [],
@@ -185,18 +186,7 @@ export default function SimpleList({
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pb-24">
-      <ListHeader
-        lists={lists}
-        activeListId={listId}
-        activeListName={listName}
-        activeListStoreName={null}
-        activeListType={type}
-        householdId={householdId}
-        householdName={householdName}
-        inviteCode={inviteCode}
-        userId={userId}
-        itemCount={unchecked.length + upcoming.length + checked.length}
-      />
+      {header}
 
       <form
         onSubmit={handleAdd}
