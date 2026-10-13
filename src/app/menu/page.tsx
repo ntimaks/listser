@@ -5,7 +5,7 @@ import InviteButton from "@/components/InviteButton";
 import MemberAvatar from "@/components/MemberAvatar";
 import PageShell, { SoonTag } from "@/components/PageShell";
 import ThemeToggle from "@/components/ThemeToggle";
-import { fetchMembers, loadNavContext } from "@/lib/household";
+import { loadNavContext } from "@/lib/household";
 import { memberName } from "@/lib/members";
 
 export const metadata: Metadata = { title: "MENU · LISTSER" };
@@ -23,8 +23,9 @@ const SECTIONS: Section[] = [
 
 // Full-screen menu: you, your household, and the pages behind it.
 export default async function MenuPage() {
-  const { supabase, user, household, back } = await loadNavContext();
-  const members = await fetchMembers(supabase, household.id);
+  const { user, household, members, back } = await loadNavContext({
+    members: true,
+  });
   const email = user.email ?? "";
 
   return (

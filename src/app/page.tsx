@@ -42,12 +42,23 @@ export default async function Home({
   searchParams: Promise<{ list?: string }>;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Independent lookups run together: every query here is a round-trip to
+  // Supabase, so a chain of awaits adds up fast. RLS scopes the household
+  // lookup to the caller, so it needn't wait for getUser.
+  const [
+    {
+      data: { user },
+    },
+    household,
+    lastId,
+    { list: requestedId },
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    fetchHousehold(supabase),
+    lastListId(),
+    searchParams,
+  ]);
   if (!user) redirect("/login");
-
-  const household = await fetchHousehold(supabase);
 
   if (!household) {
     return (
@@ -83,10 +94,12 @@ export default async function Home({
     );
   }
 
-  const lists = await fetchLists(supabase, household.id);
+  const [lists, members] = await Promise.all([
+    fetchLists(supabase, household.id),
+    // Household members: avatars in the header, and who a to-do reminds.
+    fetchMembers(supabase, household.id),
+  ]);
   // Without a valid ?list=, reopen the list you were last on, else the first.
-  const { list: requestedId } = await searchParams;
-  const lastId = await lastListId();
   const list =
     lists.find((l) => l.id === requestedId) ??
     lists.find((l) => l.id === lastId) ??
@@ -104,11 +117,30 @@ export default async function Home({
 
   const baseColumns =
     "id, name, created_at, checked_at, checked_by, created_by, priority, price_cents, url, notes, importance, effort, parent_item_id";
-  const full = await supabase
-    .from("list_items")
-    .select(`${baseColumns}, due_on, repeat_every, repeat_unit, repeat_from`)
-    .eq("list_id", list.id)
-    .order("created_at", { ascending: true });
+  // Aisle stats, buy-again and templates are grocery-only; skip the
+  // round-trips otherwise.
+  const isGrocery = list.type === "grocery";
+  const [full, openCounts, stats, buyAgain, { data: templatesData }] =
+    await Promise.all([
+      supabase
+        .from("list_items")
+        .select(`${baseColumns}, due_on, repeat_every, repeat_unit, repeat_from`)
+        .eq("list_id", list.id)
+        .order("created_at", { ascending: true }),
+      fetchOpenCounts(
+        supabase,
+        lists.map((l) => l.id)
+      ),
+      isGrocery ? fetchAisleStats(supabase, list.id) : [],
+      isGrocery ? fetchBuyAgain(supabase, list.id) : [],
+      isGrocery
+        ? supabase
+            .from("templates")
+            .select("id, name, template_items(item_name, sort_order)")
+            .eq("household_id", household.id)
+            .order("created_at", { ascending: true })
+        : { data: [] },
+    ]);
   let items = full.data;
 
   // Without migration 0011 the due-date columns don't exist and the whole
@@ -129,26 +161,6 @@ export default async function Home({
       repeat_from: null,
     }));
   }
-
-  // Household members: avatars in the header, and who a to-do reminds.
-  const members = await fetchMembers(supabase, household.id);
-  const openCounts = await fetchOpenCounts(
-    supabase,
-    lists.map((l) => l.id)
-  );
-
-  // Aisle stats and templates are grocery-only; skip the round-trips otherwise.
-  const isGrocery = list.type === "grocery";
-  const stats = isGrocery ? await fetchAisleStats(supabase, list.id) : [];
-  const buyAgain = isGrocery ? await fetchBuyAgain(supabase, list.id) : [];
-
-  const { data: templatesData } = isGrocery
-    ? await supabase
-        .from("templates")
-        .select("id, name, template_items(item_name, sort_order)")
-        .eq("household_id", household.id)
-        .order("created_at", { ascending: true })
-    : { data: [] };
 
   const templates = (templatesData ?? []) as {
     id: string;

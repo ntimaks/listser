@@ -75,25 +75,36 @@ export async function lastListId(): Promise<string | undefined> {
 }
 
 // Everything the menu and its pages need: who you are, your household, and
-// the list to go back to.
-export async function loadNavContext() {
+// the list to go back to. Queries that don't depend on each other run
+// together; RLS scopes the household lookup to the caller, so it needn't wait
+// for getUser. Pass { members: true } to load the member list alongside.
+export async function loadNavContext({ members = false } = {}) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [
+    {
+      data: { user },
+    },
+    household,
+    lastId,
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    fetchHousehold(supabase),
+    lastListId(),
+  ]);
   if (!user) redirect("/login");
-
-  const household = await fetchHousehold(supabase);
   if (!household) redirect("/");
 
-  const lists = await fetchLists(supabase, household.id);
-  const lastId = await lastListId();
+  const [lists, memberList] = await Promise.all([
+    fetchLists(supabase, household.id),
+    members ? fetchMembers(supabase, household.id) : Promise.resolve([]),
+  ]);
   const list = lists.find((l) => l.id === lastId) ?? lists[0];
 
   return {
     supabase,
     user,
     household,
+    members: memberList,
     back: { href: listHref(list?.id), name: list?.name ?? "Lists" },
   };
 }

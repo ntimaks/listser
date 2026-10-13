@@ -1399,3 +1399,13 @@ a.btn:hover {
     animation: none;
   }
 }
+
+/* Route loading fallback (app/loading.tsx). */
+.loading-cursor {
+  animation: cursor-blink 1s steps(1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading-cursor {
+    animation: none;
+  }
+}

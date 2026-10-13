@@ -3,14 +3,15 @@ import Hint from "@/components/Hint";
 import InviteButton from "@/components/InviteButton";
 import MemberAvatar from "@/components/MemberAvatar";
 import PageShell, { PageSection, SoonTag } from "@/components/PageShell";
-import { fetchMembers, loadNavContext } from "@/lib/household";
+import { loadNavContext } from "@/lib/household";
 import { memberName } from "@/lib/members";
 
 export const metadata: Metadata = { title: "HOUSEHOLD · LISTSER" };
 
 export default async function HouseholdPage() {
-  const { supabase, user, household, back } = await loadNavContext();
-  const members = await fetchMembers(supabase, household.id);
+  const { user, household, members, back } = await loadNavContext({
+    members: true,
+  });
 
   return (
     <PageShell

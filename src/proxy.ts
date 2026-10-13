@@ -34,10 +34,11 @@ export async function proxy(request: NextRequest) {
   );
 
   // Refresh the session; do not run other logic between client creation and
-  // getUser(), per @supabase/ssr guidance.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims(), per @supabase/ssr guidance. getClaims verifies the JWT locally
+  // when the project uses asymmetric signing keys, saving an Auth round-trip
+  // on every request (it falls back to asking the Auth server otherwise).
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims;
 
   const isPublic = pathname.startsWith("/login") || pathname.startsWith("/auth");
 
