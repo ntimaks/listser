@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import ListHeader from "@/components/ListHeader";
+import SyncStatus from "@/components/SyncStatus";
 import ShoppingList from "@/components/ShoppingList";
 import { ListBodySkeleton } from "@/components/Skeleton";
 import type { Template } from "@/components/GroceryList";
@@ -25,6 +26,8 @@ type Props = {
   initialTemplates: Template[];
   /** Open counts from the server, for lists not loaded yet. */
   initialOpenCounts: Record<string, number>;
+  /** When the server rendered this page; it may come from the offline cache. */
+  renderedAt: number;
 };
 
 /**
@@ -42,15 +45,25 @@ export default function ListApp({
   initialData,
   initialTemplates,
   initialOpenCounts,
+  renderedAt,
 }: Props) {
   const supabase = useMemo(() => createClient(), []);
   const { store, failed, load, settersFor } = useListStore({
     supabase,
     householdId,
+    userId,
     lists,
     seedListId: initialListId,
     seedData: initialData,
+    renderedAt,
   });
+
+  // A page served from the offline cache can be days old, and the lists,
+  // members and templates come from the server render: ask for a fresh one.
+  const router = useRouter();
+  useEffect(() => {
+    if (navigator.onLine && Date.now() - renderedAt > 60_000) router.refresh();
+  }, [router, renderedAt]);
 
   // Give every user a settings row with their browser's timezone, so reminders
   // go out at the right local time even if they never open the settings.
@@ -108,15 +121,18 @@ export default function ListApp({
   );
 
   const header = (
-    <ListHeader
-      lists={lists}
-      activeListId={active.id}
-      openCounts={openCounts}
-      householdId={householdId}
-      householdName={householdName}
-      members={members}
-      onSelectList={selectList}
-    />
+    <>
+      <ListHeader
+        lists={lists}
+        activeListId={active.id}
+        openCounts={openCounts}
+        householdId={householdId}
+        householdName={householdName}
+        members={members}
+        onSelectList={selectList}
+      />
+      <SyncStatus />
+    </>
   );
 
   const data = store[active.id];

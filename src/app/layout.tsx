@@ -7,6 +7,7 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
+import ServiceWorker from "@/components/ServiceWorker";
 
 // Mono is the default body face — the whole system reads like a logbook.
 const mono = JetBrains_Mono({
@@ -72,7 +73,10 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <ServiceWorker />
+      </body>
     </html>
   );
 }

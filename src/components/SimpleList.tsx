@@ -17,6 +17,7 @@ import ItemDetailSheet from "@/components/ItemDetailSheet";
 import Hint from "@/components/Hint";
 import Pixl from "@/components/Pixl";
 import { useListItems, type Item } from "@/lib/useListItems";
+import { enqueue } from "@/lib/outbox";
 import { COPY, attrLabels, quickWinSort, type ListType } from "@/lib/listTypes";
 import { isRecurring, nextDue, planRollover } from "@/lib/recurrence";
 import { useLocalToday } from "@/lib/useLocalToday";
@@ -144,12 +145,13 @@ export default function SimpleList({
   // Save from the detail sheet. Recipients go after the item: giving a task
   // its first due date makes the database remind the whole household, and the
   // sheet's picks then replace that default.
-  async function saveItem(id: string, patch: Partial<Item>, remind?: string[]) {
-    const saved = await updateItem(id, patch);
-    if (saved && remind) {
-      await supabase.rpc("set_item_reminders", {
-        p_item_id: id,
-        p_user_ids: remind,
+  function saveItem(id: string, patch: Partial<Item>, remind?: string[]) {
+    updateItem(id, patch);
+    if (remind) {
+      enqueue({
+        kind: "rpc",
+        fn: "set_item_reminders",
+        args: { p_item_id: id, p_user_ids: remind },
       });
     }
   }

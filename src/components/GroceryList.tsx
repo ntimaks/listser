@@ -14,12 +14,9 @@ import ItemRow from "@/components/ItemRow";
 import Drawer from "@/components/Drawer";
 import Hint from "@/components/Hint";
 import Pixl from "@/components/Pixl";
-import {
-  useListItems,
-  isInserting,
-  makeId,
-  type Item,
-} from "@/lib/useListItems";
+import { useListItems, type Item } from "@/lib/useListItems";
+import { makeId } from "@/lib/id";
+import { enqueue } from "@/lib/outbox";
 import {
   groupForStore,
   normalizeName,
@@ -92,22 +89,18 @@ export default function GroceryList({
   }
 
   // Committing a trip: record_trip folds the checkoff order into this list's
-  // aisle stats, then deletes the checked items server-side.
+  // aisle stats, then deletes the checked items server-side. Queued behind the
+  // check-offs, so it works offline too; the stats refresh once it has run.
   async function finishTrip() {
-    const checkedIds = items
-      .filter((i) => i.checked_at && !isInserting(i.id))
-      .map((i) => i.id);
+    const checkedIds = items.filter((i) => i.checked_at).map((i) => i.id);
     if (checkedIds.length === 0) return;
-    const before = items;
-    setItems((prev) => prev.filter((i) => !checkedIds.includes(i.id)));
-
-    const { error } = await supabase.rpc("record_trip", {
-      p_list_id: listId,
+    const saved = await enqueue({
+      kind: "rpc",
+      fn: "record_trip",
+      args: { p_list_id: listId },
+      removes: checkedIds,
     });
-    if (error) {
-      setItems(before);
-      return;
-    }
+    if (!saved) return;
 
     const staleCutoff = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
     const { data } = await supabase

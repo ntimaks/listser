@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { signOut } from "@/app/actions";
 import InviteButton from "@/components/InviteButton";
 import MemberAvatar from "@/components/MemberAvatar";
 import PageShell, { SoonTag } from "@/components/PageShell";
+import SignOutForm from "@/components/SignOutForm";
 import ThemeToggle from "@/components/ThemeToggle";
 import { loadNavContext } from "@/lib/household";
 import { memberName } from "@/lib/members";
@@ -122,11 +122,7 @@ export default async function MenuPage() {
         <ThemeToggle />
       </section>
 
-      <form action={signOut} className="mt-auto">
-        <button type="submit" className="btn btn-danger w-full">
-          [SIGN OUT]
-        </button>
-      </form>
+      <SignOutForm />
     </PageShell>
   );
 }

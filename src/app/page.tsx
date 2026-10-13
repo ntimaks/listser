@@ -13,6 +13,11 @@ import {
 } from "@/lib/household";
 import { fetchListData, type ListData } from "@/lib/listData";
 
+// The server renders once per request, so reading the clock here is fine.
+function readTime() {
+  return Date.now();
+}
+
 export default async function Home({
   searchParams,
 }: {
@@ -88,6 +93,9 @@ export default async function Home({
   // This list's data, the open counts for the switcher, and the household's
   // templates (any list can be switched to a grocery one). The other lists
   // load in the browser right after (see useListStore).
+  // renderedAt: when the list was read, so the browser can tell this page
+  // from an older copy (offline cache) and from its own saved copy.
+  const renderedAt = readTime();
   const [listData, openCounts, { data: templatesData }] = await Promise.all([
     fetchListData(supabase, [list]).catch((e): Record<string, ListData> => {
       console.error("list data failed:", e);
@@ -118,6 +126,7 @@ export default async function Home({
       }
       initialTemplates={(templatesData ?? []) as Template[]}
       initialOpenCounts={openCounts}
+      renderedAt={renderedAt}
     />
   );
 }

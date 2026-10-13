@@ -1,7 +1,8 @@
 "use client";
 
 import type { Item } from "@/lib/useListItems";
-import { stamp, useInserting } from "@/lib/useListItems";
+import { stamp } from "@/lib/useListItems";
+import { useInserting } from "@/lib/outbox";
 import {
   type ListType,
   formatPrice,
