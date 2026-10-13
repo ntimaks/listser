@@ -6,7 +6,12 @@ export async function proxy(request: NextRequest) {
 
   // The MCP endpoint and OAuth metadata use Bearer tokens, not session
   // cookies, and must answer with their own 401s rather than a login redirect.
-  if (pathname.startsWith("/api/mcp") || pathname.startsWith("/.well-known/")) {
+  // The calendar feed is authorized by the token in its URL.
+  if (
+    pathname.startsWith("/api/mcp") ||
+    pathname.startsWith("/api/calendar/") ||
+    pathname.startsWith("/.well-known/")
+  ) {
     return NextResponse.next();
   }
 

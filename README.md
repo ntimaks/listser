@@ -106,6 +106,27 @@ Code: `src/app/api/mcp/route.ts` (endpoint),
 verification), `src/app/.well-known/oauth-protected-resource/route.ts`
 (discovery) and `src/app/oauth/consent/` (consent screen).
 
+## Calendar feed
+
+**Menu → Integrations → Calendar** gives each user a private iCalendar link
+(`/api/calendar/<token>.ics`) to subscribe to in Google Calendar, Apple
+Calendar or Outlook. It lists the top-level to-dos with a due date in every
+household they belong to (or only the ones that remind them), as all-day
+events.
+
+- Repeats counted from the due date become repeating events (`RRULE`).
+  Repeats counted from completion can't be expressed in iCalendar, so they
+  show only the next date, which moves when the task is checked off.
+- The token in the URL is the only credential, since calendar apps can't
+  sign in. **Reset link** issues a new one; **Turn off** deletes it.
+- Calendar apps poll on their own schedule: Google every few hours, Apple and
+  Outlook as configured. It's a view, not live sync.
+- Each task's editor also has **Add to calendar**, a one-off `.ics` download.
+
+Code: `supabase/migrations/0014_calendar_feeds.sql` (table + RPCs),
+`src/app/api/calendar/[token]/route.ts` (feed), `src/lib/ical.ts`
+(iCalendar output) and `src/components/CalendarFeedForm.tsx` (settings).
+
 ## Deploying
 
 Deploy to Vercel, set the two env vars from `.env.example`, and update the
