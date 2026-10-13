@@ -37,11 +37,21 @@
   --acid: var(--lime);
   --acid-deep: var(--lime-deep);
 
+  /* Whatever sits ON lime stays dark in both themes. --ink-0 flips to
+     near-white in dark mode, which turned button labels, the check glyph and
+     link hovers on lime into ~1.2:1 mush. */
+  --on-acid: #0c0c0c;
+  /* The 1px edge of a lime control: hard ink on paper; in dark mode the fill is
+     its own edge (a pale ring around neon only clashes). */
+  --acid-edge: var(--on-acid);
+
   /* ---------- TERMINAL — mono strips, code, status ---------- */
   --term-bg: #0a0e0a;
   --term-fg: #c8ff1f;
   --term-dim: #6f8a30;
-  --term-red: #ff5d4a; /* errors, destructive */
+  /* errors, destructive. Deep enough to read as text on paper (≥4.6:1 on
+     --paper-1); dark mode swaps in the bright terminal red below. */
+  --term-red: #bf2b18;
   --term-amber: #e8b23a; /* warnings */
   --term-blue: #5a8fe8;
 
@@ -186,6 +196,11 @@
   --fg-on-dark: var(--dark-0);
   --sh-stamp: 3px 3px 0 0 var(--dark-fg-0);
   --sh-stamp-lg: 6px 6px 0 0 var(--dark-fg-0);
+  /* accents re-tuned for dark surfaces (cobalt and red need to be lighter to
+     read as text; the lime fill is its own edge) */
+  --acid-edge: transparent;
+  --cobalt: var(--term-blue);
+  --term-red: #ff5d4a;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -206,6 +221,9 @@
     --fg-on-dark: var(--dark-0);
     --sh-stamp: 3px 3px 0 0 var(--dark-fg-0);
     --sh-stamp-lg: 6px 6px 0 0 var(--dark-fg-0);
+    --acid-edge: transparent;
+    --cobalt: var(--term-blue);
+    --term-red: #ff5d4a;
   }
 }
 
@@ -368,9 +386,15 @@ hr,
   transform: translate(2px, 2px);
   box-shadow: var(--sh-inner-press);
 }
+/* Disabled has to read as inert at a glance. The accent/ink fill is dropped for
+   a recessed paper slab with a dashed edge, so a dead button can't pass for a
+   live one, and the label stays --ink-3 (≥4.8:1 on the slab in both themes)
+   instead of being washed out. Beats the variant classes below on specificity,
+   so every variant disables the same way. */
 .btn:disabled {
-  color: var(--ink-5);
-  border-color: var(--ink-5);
+  background: var(--paper-2);
+  border: var(--bw-1) dashed var(--ink-4);
+  color: var(--ink-3);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
@@ -384,8 +408,8 @@ hr,
 }
 .btn-acid {
   background: var(--acid);
-  border-color: var(--ink-0);
-  color: #0c0c0c;
+  border-color: var(--acid-edge);
+  color: var(--on-acid);
   font-weight: var(--fw-bold);
 }
 .btn-acid:not(:disabled):hover {
@@ -499,9 +523,9 @@ hr,
   color: var(--ink-3);
 }
 .checkbox.is-checked {
-  border-color: var(--ink-0);
+  border-color: var(--acid-edge);
   background: var(--acid);
-  color: var(--ink-0);
+  color: var(--on-acid);
 }
 
 /* =========================================================
@@ -591,14 +615,18 @@ hr,
   background: var(--paper-1);
   box-shadow: 0 0 0 3px var(--acid);
 }
+/* Same inert look as .btn:disabled: a recessed slab with a dashed edge and a
+   readable label, not a washed-out copy of the live control. */
 .select-trigger:disabled {
-  border-color: var(--ink-5);
-  color: var(--ink-5);
+  background: var(--paper-2);
+  border-style: dashed;
+  border-color: var(--ink-4);
+  color: var(--ink-3);
   cursor: not-allowed;
 }
 .select-trigger:disabled .select-meta,
 .select-trigger:disabled .select-caret {
-  color: var(--ink-5);
+  color: var(--ink-3);
 }
 .select-value {
   flex: 1;
@@ -888,8 +916,13 @@ a,
 a:hover,
 .t-link:hover {
   background: var(--acid);
-  color: var(--ink-0);
+  color: var(--on-acid);
   text-decoration: none;
+}
+/* A link styled as a button keeps its ink ring on hover; in dark mode that would
+   outline the lime fill in near-white, so the ring follows the fill instead. */
+a.btn:hover {
+  border-color: var(--acid-edge);
 }
 
 /* =========================================================

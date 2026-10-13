@@ -165,7 +165,7 @@ export default function ListSwitcher({
                     onClick={() => {
                       if (active) close();
                     }}
-                    className={`flex min-w-0 flex-1 items-center gap-2 border-b border-[var(--ink-5)] px-4 py-3.5 text-[var(--fg)] no-underline! hover:bg-[var(--paper-2)]! hover:text-[var(--fg)] active:bg-[var(--paper-2)] ${
+                    className={`flex min-w-0 flex-1 items-center gap-2 border-b border-[var(--ink-5)] px-4 py-3.5 text-[var(--fg)] no-underline! hover:bg-[var(--paper-2)]! hover:text-[var(--fg)]! active:bg-[var(--paper-2)] ${
                       active ? "font-bold" : ""
                     }`}
                   >
