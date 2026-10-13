@@ -182,7 +182,8 @@ export default function ListSwitcher({
                           aria-current={active ? "page" : undefined}
                           className={`flex min-h-14 min-w-0 flex-1 items-center gap-2 border-b border-[var(--ink-5)] px-4 py-2 no-underline! ${
                             active
-                              ? "text-[var(--on-acid)] hover:bg-[var(--acid)]! hover:text-[var(--on-acid)]!"
+                              ? // ! beats the global link color, which is near-white in dark mode.
+                                "text-[var(--on-acid)]! hover:bg-[var(--acid)]! hover:text-[var(--on-acid)]!"
                               : "text-[var(--fg)] hover:bg-[var(--paper-2)]! hover:text-[var(--fg)]! active:bg-[var(--paper-2)]"
                           }`}
                         >

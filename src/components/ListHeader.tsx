@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import ListSwitcher from "@/components/ListSwitcher";
 import MemberAvatar from "@/components/MemberAvatar";
+import MenuIcon from "@/components/MenuIcon";
 import Pixl from "@/components/Pixl";
 import { createClient } from "@/lib/supabase/client";
 import { rememberList } from "@/lib/lastList";
@@ -50,7 +51,6 @@ export default function ListHeader({
     rememberList(activeListId);
   }, [activeListId]);
 
-  const me = members.find((m) => m.user_id === userId);
   const shown = members.slice(0, MAX_AVATARS);
   const hidden = members.length - shown.length;
 
@@ -65,7 +65,7 @@ export default function ListHeader({
           <Link
             href="/household"
             aria-label={`Household: ${members.map((m) => memberName(m.email)).join(", ")}`}
-            className="flex shrink-0 items-center py-1 no-underline!"
+            className="link-avatars flex shrink-0 items-center py-1"
           >
             {shown.map((m, i) => (
               <MemberAvatar
@@ -95,15 +95,9 @@ export default function ListHeader({
         <Link
           href="/menu"
           aria-label="Menu"
-          className="link-plain flex w-[52px] shrink-0 flex-col items-center justify-center gap-1 border border-[var(--ink-0)] bg-[var(--paper-0)] py-1.5"
+          className="link-plain flex w-[52px] shrink-0 flex-col items-center justify-center gap-1.5 border border-[var(--ink-0)] bg-[var(--paper-0)] py-1.5"
         >
-          {me ? (
-            <MemberAvatar userId={me.user_id} email={me.email} size={30} />
-          ) : (
-            <span aria-hidden className="text-lg leading-none">
-              ≡
-            </span>
-          )}
+          <MenuIcon />
           <span className="text-[9px] font-bold tracking-[0.1em]">MENU</span>
         </Link>
       </div>
