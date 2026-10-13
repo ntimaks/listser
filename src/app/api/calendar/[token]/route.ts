@@ -42,7 +42,11 @@ export async function GET(
     return due ? [{ task, due, appUrl: `${origin}/?list=${task.list_id}` }] : [];
   });
 
-  return new Response(buildCalendar({ name: "Listser to-dos", events }), {
+  return new Response(buildCalendar({
+      name: "Listser",
+      description: "To-dos with a due date, from Listser",
+      events,
+    }), {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
       "Content-Disposition": 'inline; filename="listser.ics"',
