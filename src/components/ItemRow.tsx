@@ -9,6 +9,7 @@ import {
   levelColor,
 } from "@/lib/listTypes";
 import { dueLabel, nextDue, repeatLabel, shortDate } from "@/lib/recurrence";
+import CheckMark from "./CheckMark";
 
 const DUE_TONE = {
   overdue: "text-[var(--term-red)]",
@@ -50,7 +51,7 @@ export default function ItemRow({
 
   const checkbox = (
     <span aria-hidden className={`checkbox ${checked ? "is-checked" : ""}`}>
-      {checked ? "✓" : ""}
+      {checked && <CheckMark />}
     </span>
   );
   const nameColor = checked

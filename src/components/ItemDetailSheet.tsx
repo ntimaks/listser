@@ -10,6 +10,7 @@ import { type ListType, COPY, LEVELS, attrLabels } from "@/lib/listTypes";
 import type { RepeatFrom, RepeatUnit } from "@/lib/recurrence";
 import type { Member } from "@/lib/reminders";
 import { createClient } from "@/lib/supabase/client";
+import CheckMark from "./CheckMark";
 
 type ListSummary = { id: string; name: string; type: ListType };
 
@@ -305,7 +306,7 @@ export default function ItemDetailSheet({
                                   aria-hidden
                                   className={`checkbox ${on ? "is-checked" : ""}`}
                                 >
-                                  {on ? "✓" : ""}
+                                  {on && <CheckMark />}
                                 </span>
                                 <span className="t-body min-w-0 flex-1 truncate">
                                   {m.email}
