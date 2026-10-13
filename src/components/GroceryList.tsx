@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { createTemplate, deleteTemplate } from "@/app/actions";
-import ListHeader from "@/components/ListHeader";
 import ItemRow from "@/components/ItemRow";
 import Drawer from "@/components/Drawer";
 import Hint from "@/components/Hint";
@@ -14,26 +13,16 @@ import {
   type ItemStat,
   type BuyAgainItem,
 } from "@/lib/categories";
-import { COPY, type ListType } from "@/lib/listTypes";
+import { COPY } from "@/lib/listTypes";
 
 type TemplateItem = { item_name: string; sort_order: number };
 type Template = { id: string; name: string; template_items: TemplateItem[] };
 
-type ListSummary = {
-  id: string;
-  name: string;
-  store_name: string | null;
-  type: ListType;
-};
-
 type Props = {
   listId: string;
-  listName: string;
-  listStoreName: string | null;
-  lists: ListSummary[];
+  /** The list header, built by the page. */
+  header: ReactNode;
   householdId: string;
-  householdName: string;
-  inviteCode: string;
   userId: string;
   initialItems: Item[];
   initialStats: ItemStat[];
@@ -43,12 +32,8 @@ type Props = {
 
 export default function GroceryList({
   listId,
-  listName,
-  listStoreName,
-  lists,
+  header,
   householdId,
-  householdName,
-  inviteCode,
   userId,
   initialItems,
   initialStats,
@@ -212,18 +197,7 @@ export default function GroceryList({
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pb-24">
-      <ListHeader
-        lists={lists}
-        activeListId={listId}
-        activeListName={listName}
-        activeListStoreName={listStoreName}
-        activeListType="grocery"
-        householdId={householdId}
-        householdName={householdName}
-        inviteCode={inviteCode}
-        userId={userId}
-        itemCount={unchecked.length + checked.length}
-      />
+      {header}
 
       {/* Capture first: the add box lives at the top, always one tap away. */}
       <form
