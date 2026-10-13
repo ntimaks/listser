@@ -50,14 +50,21 @@ let onReject: (() => void) | null = null;
 let flushing = false;
 let retryTimer: ReturnType<typeof setTimeout> | undefined;
 let retryDelay = 2000;
-let offline = false;
+// Whether the last send failed for want of a connection.
+let unreachable = false;
+// Whether the browser itself says there's no network.
+let browserOffline = false;
 
 type Status = { pending: number; offline: boolean };
-let status: Status = { pending: 0, offline: false };
+const ONLINE: Status = { pending: 0, offline: false };
+let status = ONLINE;
 const listeners = new Set<() => void>();
 
 function changed() {
-  status = { pending: ops.length, offline };
+  status = {
+    pending: ops.length,
+    offline: browserOffline || (unreachable && ops.length > 0),
+  };
   listeners.forEach((l) => l());
 }
 
@@ -101,11 +108,25 @@ export function startOutbox(opts: {
   const wake = () => {
     if (document.visibilityState === "visible") flush();
   };
-  window.addEventListener("online", flush);
+  const onOnline = () => {
+    browserOffline = false;
+    unreachable = false;
+    changed();
+    flush();
+  };
+  const onOffline = () => {
+    browserOffline = true;
+    changed();
+  };
+  browserOffline = !navigator.onLine;
+  changed();
+  window.addEventListener("online", onOnline);
+  window.addEventListener("offline", onOffline);
   document.addEventListener("visibilitychange", wake);
   flush();
   return () => {
-    window.removeEventListener("online", flush);
+    window.removeEventListener("online", onOnline);
+    window.removeEventListener("offline", onOffline);
     document.removeEventListener("visibilitychange", wake);
     onApply = null;
     onReject = null;
@@ -118,7 +139,7 @@ export function resetOutbox() {
   recent = [];
   storageKey = null;
   loaded = false;
-  offline = false;
+  unreachable = false;
   waiters.forEach((resolve) => resolve(false));
   waiters.clear();
   changed();
@@ -194,10 +215,6 @@ async function flush() {
   clearTimeout(retryTimer);
   if (!navigator.onLine) {
     // The online event will wake us.
-    if (ops.length && !offline) {
-      offline = true;
-      changed();
-    }
     return;
   }
 
@@ -207,7 +224,7 @@ async function flush() {
       const op = ops[0];
       const { error, status } = await send(client, op);
       if (error && retryable(status)) {
-        offline = true;
+        unreachable = true;
         changed();
         retryTimer = setTimeout(flush, retryDelay);
         retryDelay = Math.min(retryDelay * 2, 60_000);
@@ -219,7 +236,7 @@ async function flush() {
         recent.push({ op, at: Date.now() });
       }
       ops = ops.filter((o) => o.id !== op.id);
-      offline = false;
+      unreachable = false;
       retryDelay = 2000;
       persist();
       changed();
@@ -285,11 +302,14 @@ export function useInserting(id: string) {
   );
 }
 
-/** How many changes are waiting, and whether the last try had no connection. */
+/**
+ * How many changes are waiting, and whether we're offline: the browser says
+ * so, or changes are waiting and the last try couldn't reach the server.
+ */
 export function useOutboxStatus() {
   return useSyncExternalStore(
     subscribe,
     () => status,
-    () => status
+    () => ONLINE
   );
 }

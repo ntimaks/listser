@@ -7,6 +7,7 @@ import MemberAvatar from "@/components/MemberAvatar";
 import MenuIcon from "@/components/MenuIcon";
 import Pixl from "@/components/Pixl";
 import { rememberList } from "@/lib/lastList";
+import { useOutboxStatus } from "@/lib/outbox";
 import { memberName } from "@/lib/members";
 import type { Member } from "@/lib/reminders";
 import type { ListSummary } from "@/lib/household";
@@ -37,6 +38,10 @@ export default function ListHeader({
     rememberList(activeListId);
   }, [activeListId]);
 
+  // No connection: Pixl dozes off, the strip dims and an OFFLINE tag blinks.
+  // Changes still save on the phone meanwhile (see outbox).
+  const { offline } = useOutboxStatus();
+
   const shown = members.slice(0, MAX_AVATARS);
   const hidden = members.length - shown.length;
 
@@ -44,32 +49,54 @@ export default function ListHeader({
     <header className="panel mt-3">
       <div className="term-strip justify-between">
         <span className="flex min-w-0 items-center gap-1.5">
-          <Pixl motion="idle" size={11} title="Pixl, the resident" />
-          <span className="truncate">LISTSER // {householdName}</span>
-        </span>
-        {members.length > 0 && (
-          <Link
-            href="/household"
-            prefetch
-            aria-label={`Household: ${members.map((m) => memberName(m.email)).join(", ")}`}
-            className="link-avatars flex shrink-0 items-center py-1"
-          >
-            {shown.map((m, i) => (
-              <MemberAvatar
-                key={m.user_id}
-                userId={m.user_id}
-                email={m.email}
-                size={22}
-                className={i > 0 ? "-ml-1" : ""}
-              />
-            ))}
-            {hidden > 0 && (
-              <span className="-ml-1 flex h-[22px] min-w-[22px] items-center justify-center border border-[var(--ink-0)] bg-[var(--paper-1)] px-0.5 font-[family-name:var(--ff-mono)] text-[9px] font-bold text-[var(--fg)]">
-                +{hidden}
+          {offline ? (
+            <span className="pixl-wrap">
+              <Pixl motion="sleep" size={11} title="Pixl, asleep: offline" />
+              <span aria-hidden className="pixl-z strip-z">
+                z
               </span>
-            )}
-          </Link>
-        )}
+              <span aria-hidden className="pixl-z strip-z strip-z-late">
+                z
+              </span>
+            </span>
+          ) : (
+            <Pixl motion="idle" size={11} title="Pixl, the resident" />
+          )}
+          <span className={`truncate ${offline ? "term-strip-dim" : ""}`}>
+            LISTSER // {householdName}
+          </span>
+        </span>
+        <span className="flex shrink-0 items-center gap-2.5">
+          {offline && (
+            <span className="offline-tag">
+              OFFLINE
+              <span aria-hidden className="offline-cursor" />
+            </span>
+          )}
+          {members.length > 0 && (
+            <Link
+              href="/household"
+              prefetch
+              aria-label={`Household: ${members.map((m) => memberName(m.email)).join(", ")}`}
+              className="link-avatars flex shrink-0 items-center py-1"
+            >
+              {shown.map((m, i) => (
+                <MemberAvatar
+                  key={m.user_id}
+                  userId={m.user_id}
+                  email={m.email}
+                  size={22}
+                  className={i > 0 ? "-ml-1" : ""}
+                />
+              ))}
+              {hidden > 0 && (
+                <span className="-ml-1 flex h-[22px] min-w-[22px] items-center justify-center border border-[var(--ink-0)] bg-[var(--paper-1)] px-0.5 font-[family-name:var(--ff-mono)] text-[9px] font-bold text-[var(--fg)]">
+                  +{hidden}
+                </span>
+              )}
+            </Link>
+          )}
+        </span>
       </div>
 
       <div className="flex items-stretch gap-2 p-2.5">

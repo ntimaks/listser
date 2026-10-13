@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import ListHeader from "@/components/ListHeader";
-import SyncStatus from "@/components/SyncStatus";
 import ShoppingList from "@/components/ShoppingList";
 import { ListBodySkeleton } from "@/components/Skeleton";
 import type { Template } from "@/components/GroceryList";
@@ -121,18 +120,15 @@ export default function ListApp({
   );
 
   const header = (
-    <>
-      <ListHeader
-        lists={lists}
-        activeListId={active.id}
-        openCounts={openCounts}
-        householdId={householdId}
-        householdName={householdName}
-        members={members}
-        onSelectList={selectList}
-      />
-      <SyncStatus />
-    </>
+    <ListHeader
+      lists={lists}
+      activeListId={active.id}
+      openCounts={openCounts}
+      householdId={householdId}
+      householdName={householdName}
+      members={members}
+      onSelectList={selectList}
+    />
   );
 
   const data = store[active.id];
