@@ -13,7 +13,14 @@ export type CalendarTask = DueFields & {
   notes?: string | null;
   list_name?: string | null;
   household_name?: string | null;
+  checked_at?: string | null;
+  // Shown as progress in the title and a checklist in the notes.
+  subtasks?: { name: string; checked: boolean }[];
 };
+
+// Lime from the app's palette (--lime-deep, which holds up as text on white).
+// Apple Calendar applies it when the calendar is first subscribed.
+const CALENDAR_COLOR = "#B8C920";
 
 // TEXT values escape backslash, semicolon, comma and newlines.
 function escapeText(value: string): string {
@@ -52,6 +59,46 @@ function stamp(now: Date): string {
   return now.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 }
 
+function plural(n: number, unit: string) {
+  return n === 1 ? unit : `${n} ${unit}s`;
+}
+
+// "Repeats every 2 weeks" / "Repeats 5 days after it's done".
+function repeatText(task: CalendarTask): string | null {
+  if (!isRecurring(task)) return null;
+  const every = plural(task.repeat_every, task.repeat_unit);
+  return task.repeat_from === "schedule"
+    ? `Repeats every ${every}`
+    : `Repeats ${task.repeat_every === 1 ? `a ${task.repeat_unit}` : every} after it's done`;
+}
+
+// "☐ Paint the hall · 2/5": a checkbox marks it as a task among real events.
+function summary(task: CalendarTask, subtasks: CalendarTask["subtasks"]) {
+  const done = subtasks?.filter((s) => s.checked).length ?? 0;
+  const progress = subtasks?.length ? ` · ${done}/${subtasks.length}` : "";
+  return `☐ ${task.name}${progress}`;
+}
+
+// The notes field, in blocks: where it lives and how it repeats, the task's
+// own notes, its subtasks as a checklist, and a link back to the app (Google
+// shows no URL field, so the link goes in the text too).
+function description(
+  task: CalendarTask,
+  subtasks: CalendarTask["subtasks"],
+  appUrl?: string
+): string {
+  const where = [task.list_name, task.household_name].filter(Boolean).join(" · ");
+  const blocks = [
+    [where, repeatText(task)].filter(Boolean).join("\n"),
+    task.notes?.trim() ?? "",
+    subtasks?.length
+      ? subtasks.map((s) => `${s.checked ? "☑" : "☐"} ${s.name}`).join("\n")
+      : "",
+    appUrl ? `Open in Listser: ${appUrl}` : "",
+  ];
+  return blocks.filter(Boolean).join("\n\n");
+}
+
 // One VEVENT for a task due on `due`. Schedule-based repeats become an RRULE;
 // a repeat counted from completion can't be expressed in iCalendar, so it is
 // a single event on the next date, which moves when the task is checked off.
@@ -61,26 +108,27 @@ function event(
   now: Date,
   appUrl?: string
 ): string[] {
-  const description = [
-    [task.household_name, task.list_name].filter(Boolean).join(" · "),
-    task.notes ?? "",
-  ]
-    .filter(Boolean)
-    .join("\n\n");
+  // A checked recurring task is shown at its next date, when it and its
+  // subtasks come back unchecked.
+  const subtasks = task.checked_at
+    ? task.subtasks?.map((s) => ({ ...s, checked: false }))
+      : task.subtasks;
   const lines = [
     "BEGIN:VEVENT",
     `UID:${task.id}@listser`,
     `DTSTAMP:${stamp(now)}`,
     `DTSTART;VALUE=DATE:${ymd(due)}`,
     `DTEND;VALUE=DATE:${ymd(addDays(due, 1))}`,
-    `SUMMARY:${escapeText(task.name)}`,
+    `SUMMARY:${escapeText(summary(task, subtasks))}`,
     "TRANSP:TRANSPARENT",
   ];
+  if (task.list_name) lines.push(`CATEGORIES:${escapeText(task.list_name)}`);
   if (isRecurring(task) && task.repeat_from === "schedule") {
     const freq = task.repeat_unit === "week" ? "WEEKLY" : "DAILY";
     lines.push(`RRULE:FREQ=${freq};INTERVAL=${task.repeat_every}`);
   }
-  if (description) lines.push(`DESCRIPTION:${escapeText(description)}`);
+  const notes = description(task, subtasks, appUrl);
+  if (notes) lines.push(`DESCRIPTION:${escapeText(notes)}`);
   if (appUrl) lines.push(`URL:${appUrl}`);
   lines.push("END:VEVENT");
   return lines;
@@ -88,10 +136,12 @@ function event(
 
 export function buildCalendar({
   name,
+  description,
   events,
   now = new Date(),
 }: {
   name: string;
+  description?: string;
   events: { task: CalendarTask; due: string; appUrl?: string }[];
   now?: Date;
 }): string {
@@ -101,7 +151,15 @@ export function buildCalendar({
     "PRODID:-//Listser//Listser//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
+    `NAME:${escapeText(name)}`,
     `X-WR-CALNAME:${escapeText(name)}`,
+    ...(description
+      ? [
+          `DESCRIPTION:${escapeText(description)}`,
+          `X-WR-CALDESC:${escapeText(description)}`,
+        ]
+      : []),
+    `X-APPLE-CALENDAR-COLOR:${CALENDAR_COLOR}`,
     // Hints for how often subscribers re-fetch; Google ignores them.
     "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
     "X-PUBLISHED-TTL:PT1H",
