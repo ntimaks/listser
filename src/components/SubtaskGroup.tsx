@@ -5,6 +5,7 @@ import ItemRow from "@/components/ItemRow";
 import Pixl from "@/components/Pixl";
 import type { Item, ItemExtras } from "@/lib/useListItems";
 import type { ListType } from "@/lib/listTypes";
+import type { Member } from "@/lib/reminders";
 
 // One to-do task plus its subtasks. Holds the parent/subtask invariant — a
 // parent is checked iff it has subtasks and all of them are checked — and the
@@ -27,6 +28,7 @@ export default function SubtaskGroup({
   onCelebrate,
   showAdd = true,
   today,
+  members,
 }: {
   parent: Item;
   subtasks: Item[];
@@ -39,6 +41,7 @@ export default function SubtaskGroup({
   onCelebrate?: (parentId: string) => void;
   showAdd?: boolean;
   today: string | null;
+  members: Member[];
 }) {
   const [draft, setDraft] = useState("");
 
@@ -96,6 +99,7 @@ export default function SubtaskGroup({
           onOpen={onOpen}
           today={today}
           progress={total > 0 ? { done, total } : undefined}
+          members={members}
         />
         {subtasks.map((s) => (
           <ItemRow
@@ -105,6 +109,7 @@ export default function SubtaskGroup({
             isSubtask
             onToggle={toggleSubtask}
             onDelete={onDelete}
+            members={members}
           />
         ))}
         {showAdd && (

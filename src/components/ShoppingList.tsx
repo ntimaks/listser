@@ -47,6 +47,7 @@ export default function ShoppingList(props: Props) {
         setBuyAgain={props.setBuyAgain}
         templates={props.templates}
         setTemplates={props.setTemplates}
+        members={props.members}
       />
     );
   }

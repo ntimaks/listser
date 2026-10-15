@@ -10,7 +10,9 @@ import {
   levelColor,
 } from "@/lib/listTypes";
 import { dueLabel, nextDue, repeatLabel, shortDate } from "@/lib/recurrence";
+import type { Member } from "@/lib/reminders";
 import CheckMark from "./CheckMark";
+import ItemAuthor from "./ItemAuthor";
 
 const DUE_TONE = {
   overdue: "text-[var(--term-red)]",
@@ -27,7 +29,8 @@ const DUE_TONE = {
 // `progress` shows a pixel progress bar + done/total counter on a parent row.
 // To-do rows also show their due date and repeat; a checked recurring row shows
 // when it comes back instead. `today` is the viewer's local date (null until
-// hydrated), which the relative labels need.
+// hydrated), which the relative labels need. Rows end with who added them
+// (ItemAuthor); subtasks only mark the ones an assistant added.
 export default function ItemRow({
   item,
   type,
@@ -37,6 +40,7 @@ export default function ItemRow({
   isSubtask = false,
   progress,
   today = null,
+  members = [],
 }: {
   item: Item;
   type: ListType;
@@ -46,6 +50,7 @@ export default function ItemRow({
   isSubtask?: boolean;
   progress?: { done: number; total: number };
   today?: string | null;
+  members?: Member[];
 }) {
   const checked = Boolean(item.checked_at);
   // Dimmed until the server has it; it still takes taps meanwhile.
@@ -89,6 +94,9 @@ export default function ItemRow({
         >
           {checkbox}
           <span className={`${nameClass} block`}>{item.name}</span>
+          {item.source === "assistant" && (
+            <ItemAuthor item={item} members={members} />
+          )}
         </button>
         {deleteButton}
       </li>
@@ -108,6 +116,7 @@ export default function ItemRow({
           <span className="t-meta shrink-0 text-[var(--fg-disabled)]">
             {stamp(item.created_at)}
           </span>
+          <ItemAuthor item={item} members={members} />
         </button>
         {deleteButton}
       </li>
@@ -199,6 +208,7 @@ export default function ItemRow({
             </span>
           )}
         </span>
+        <ItemAuthor item={item} members={members} />
         {prog ? (
           <span
             className="t-pixel shrink-0 leading-none text-[var(--fg-2)]"

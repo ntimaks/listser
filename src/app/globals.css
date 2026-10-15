@@ -598,6 +598,35 @@ a.link-plain:hover {
   color: var(--on-acid);
 }
 
+/* AI-added marker (ItemAuthor): a terminal square with a pixel spark, and the
+   member the assistant acted for as a small swatch in its corner. */
+.ai-author {
+  position: relative;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--term-bg);
+  color: var(--term-fg);
+  border: var(--bw-1) solid var(--ink-0);
+}
+.ai-author-for {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 11px;
+  height: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--bw-1) solid var(--ink-0);
+  font-size: 7px;
+  font-weight: var(--fw-bold);
+  line-height: 1;
+}
+
 /* =========================================================
    SUBTASKS — nested under a to-do parent. A left connector
    hairline groups them; the parent row carries a pixel

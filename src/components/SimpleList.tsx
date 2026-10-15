@@ -179,6 +179,7 @@ export default function SimpleList({
         onCelebrate={triggerCelebrate}
         showAdd={showAdd}
         today={today}
+        members={members}
       />
     ) : (
       <ItemRow
@@ -189,6 +190,7 @@ export default function SimpleList({
         onToggle={toggleItem}
         onDelete={deleteItem}
         onOpen={setEditing}
+        members={members}
       />
     );
 
