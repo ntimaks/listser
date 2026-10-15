@@ -7,6 +7,7 @@ import {
 } from "next/font/google";
 import "./globals.css";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
+import AnimatedFavicon from "@/components/AnimatedFavicon";
 import ServiceWorker from "@/components/ServiceWorker";
 
 // Mono is the default body face — the whole system reads like a logbook.
@@ -76,6 +77,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         {children}
         <ServiceWorker />
+        <AnimatedFavicon />
       </body>
     </html>
   );

@@ -16,10 +16,10 @@ export type PixlMotion =
   | "dance"
   | "still";
 
-type Rect = readonly [x: number, y: number, w: number, h: number];
+export type Rect = readonly [x: number, y: number, w: number, h: number];
 
 // Base silhouette (idle / jump / dance / sleep / still).
-const BODY: Rect[] = [
+export const BODY: Rect[] = [
   // head — the gaps at cols 4 & 6 of row 2 are the open eyes
   [3, 0, 5, 2], [3, 2, 1, 1], [5, 2, 1, 1], [7, 2, 1, 1], [3, 3, 5, 1],
   // shoulders
@@ -33,7 +33,7 @@ const BODY: Rect[] = [
 ];
 
 // Filling the eye gaps = closed eyes (blink overlay / sleep).
-const EYES_SHUT: Rect[] = [
+export const EYES_SHUT: Rect[] = [
   [4, 2, 1, 1],
   [6, 2, 1, 1],
 ];
