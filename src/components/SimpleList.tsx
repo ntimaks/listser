@@ -21,6 +21,7 @@ import { enqueue } from "@/lib/outbox";
 import { COPY, attrLabels, quickWinSort, type ListType } from "@/lib/listTypes";
 import { isRecurring, nextDue, planRollover } from "@/lib/recurrence";
 import { useLocalToday } from "@/lib/useLocalToday";
+import { useStuck } from "@/lib/useStuck";
 import type { Member } from "@/lib/reminders";
 
 type ListSummary = {
@@ -85,6 +86,7 @@ export default function SimpleList({
     if (today) rollover(today);
   }, [today]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [addBarMarker, addBarStuck] = useStuck();
 
   // The Pixl celebration lives here (not in SubtaskGroup) so it survives the
   // parent moving to the DONE section when its last subtask completes.
@@ -198,9 +200,12 @@ export default function SimpleList({
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pb-24">
       {header}
 
+      <div ref={addBarMarker} aria-hidden />
       <form
         onSubmit={handleAdd}
-        className="sticky top-0 z-10 bg-[var(--bg)] pb-3 pt-3"
+        className={`sticky top-0 z-10 -mx-4 border-b bg-[var(--bg)] px-4 pb-3 pt-3 transition-colors duration-100 ${
+          addBarStuck ? "border-[var(--ink-0)]" : "border-transparent"
+        }`}
       >
         <div className="flex gap-2">
           <input

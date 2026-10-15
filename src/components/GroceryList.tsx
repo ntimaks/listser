@@ -25,6 +25,7 @@ import {
 } from "@/lib/categories";
 import { COPY } from "@/lib/listTypes";
 import type { Member } from "@/lib/reminders";
+import { useStuck } from "@/lib/useStuck";
 
 type TemplateItem = { item_name: string; sort_order: number };
 export type Template = {
@@ -81,6 +82,7 @@ export default function GroceryList({
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [saveTemplateName, setSaveTemplateName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const [addBarMarker, addBarStuck] = useStuck();
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -199,9 +201,12 @@ export default function GroceryList({
       {header}
 
       {/* Capture first: the add box lives at the top, always one tap away. */}
+      <div ref={addBarMarker} aria-hidden />
       <form
         onSubmit={handleAdd}
-        className="sticky top-0 z-10 bg-[var(--bg)] pb-3 pt-3"
+        className={`sticky top-0 z-10 -mx-4 border-b bg-[var(--bg)] px-4 pb-3 pt-3 transition-colors duration-100 ${
+          addBarStuck ? "border-[var(--ink-0)]" : "border-transparent"
+        }`}
       >
         <div className="flex gap-2">
           <input
