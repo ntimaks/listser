@@ -367,7 +367,14 @@ export function registerTools(server: McpServer) {
         const rows = must(
           await supabase
             .from("list_items")
-            .insert(items.map((item) => ({ ...itemColumns(item), list_id, created_by: userId })))
+            .insert(
+              items.map((item) => ({
+                ...itemColumns(item),
+                list_id,
+                created_by: userId,
+                source: "assistant",
+              }))
+            )
             .select(ITEM_COLUMNS)
         );
         // Rows come back in insert order, so pair each with its input.
@@ -582,7 +589,9 @@ export function registerTools(server: McpServer) {
         const added = must(
           await supabase
             .from("list_items")
-            .insert(toAdd.map((name) => ({ list_id, name, created_by: userId })))
+            .insert(
+              toAdd.map((name) => ({ list_id, name, created_by: userId, source: "assistant" }))
+            )
             .select("id, name")
         );
         return { added };

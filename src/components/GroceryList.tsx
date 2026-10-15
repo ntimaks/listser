@@ -24,6 +24,7 @@ import {
   type BuyAgainItem,
 } from "@/lib/categories";
 import { COPY } from "@/lib/listTypes";
+import type { Member } from "@/lib/reminders";
 
 type TemplateItem = { item_name: string; sort_order: number };
 export type Template = {
@@ -49,6 +50,7 @@ type Props = {
   setBuyAgain: Dispatch<SetStateAction<BuyAgainItem[]>>;
   templates: Template[];
   setTemplates: Dispatch<SetStateAction<Template[]>>;
+  members: Member[];
 };
 
 export default function GroceryList({
@@ -65,6 +67,7 @@ export default function GroceryList({
   setBuyAgain,
   templates,
   setTemplates,
+  members,
 }: Props) {
   const { addItem, addItems, toggleItem, deleteItem } = useListItems(
     supabase,
@@ -271,6 +274,7 @@ export default function GroceryList({
                 type="grocery"
                 onToggle={toggleItem}
                 onDelete={deleteItem}
+                members={members}
               />
             ))}
           </ul>
@@ -296,6 +300,7 @@ export default function GroceryList({
                 type="grocery"
                 onToggle={toggleItem}
                 onDelete={deleteItem}
+                members={members}
               />
             ))}
           </ul>

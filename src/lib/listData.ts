@@ -17,6 +17,20 @@ export type ListData = {
 const ITEM_COLUMNS =
   "list_id, id, name, created_at, checked_at, checked_by, created_by, priority, price_cents, url, notes, importance, effort, parent_item_id";
 const DUE_COLUMNS = "due_on, repeat_every, repeat_unit, repeat_from";
+const NO_DUE = {
+  due_on: null,
+  repeat_every: null,
+  repeat_unit: null,
+  repeat_from: null,
+};
+
+// Newest migration first: on a database that lacks a column the whole select
+// fails, so each step drops the next-newest columns and still shows the items.
+const ITEM_SELECTS: { columns: string; missing: string; fill: Partial<Item> }[] = [
+  { columns: `${ITEM_COLUMNS}, ${DUE_COLUMNS}, source`, missing: "", fill: {} },
+  { columns: `${ITEM_COLUMNS}, ${DUE_COLUMNS}`, missing: "0017", fill: {} },
+  { columns: ITEM_COLUMNS, missing: "0011", fill: NO_DUE },
+];
 
 // Items for one or more lists, oldest first. Each row keeps its list_id so a
 // batch can be split per list.
@@ -25,29 +39,23 @@ export async function fetchItems(
   listIds: string[]
 ): Promise<(Item & { list_id: string })[]> {
   if (listIds.length === 0) return [];
-  const full = await supabase
-    .from("list_items")
-    .select(`${ITEM_COLUMNS}, ${DUE_COLUMNS}`)
-    .in("list_id", listIds)
-    .order("created_at", { ascending: true });
-  if (!full.error) return full.data;
-
-  // Without migration 0011 the due-date columns don't exist and the whole
-  // select fails. Still show the items, with no due dates.
-  console.error("list_items select failed, retrying without 0011 columns:", full.error.message);
-  const fallback = await supabase
-    .from("list_items")
-    .select(ITEM_COLUMNS)
-    .in("list_id", listIds)
-    .order("created_at", { ascending: true });
-  if (fallback.error) throw new Error(fallback.error.message);
-  return fallback.data.map((i) => ({
-    ...i,
-    due_on: null,
-    repeat_every: null,
-    repeat_unit: null,
-    repeat_from: null,
-  }));
+  let error = "";
+  for (const { columns, missing, fill } of ITEM_SELECTS) {
+    if (error) {
+      console.error(`list_items select failed, retrying without ${missing} columns:`, error);
+    }
+    const res = await supabase
+      .from("list_items")
+      .select(columns)
+      .in("list_id", listIds)
+      .order("created_at", { ascending: true });
+    if (!res.error) {
+      const rows = res.data as unknown as (Item & { list_id: string })[];
+      return rows.map((i) => ({ ...fill, ...i }));
+    }
+    error = res.error.message;
+  }
+  throw new Error(error);
 }
 
 // Aisle stats seen in the last 180 days; older ones no longer describe the
