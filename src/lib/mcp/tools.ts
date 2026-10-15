@@ -292,14 +292,16 @@ export function registerTools(server: McpServer) {
         );
 
         // Bring repeating tasks up to date first, as the app does on open, on
-        // the caller's own date (their settings timezone; UTC until they have
-        // one).
+        // the caller's own calendar (their settings timezone; UTC until they
+        // have one).
+        let timeZone = "UTC";
         if (list.type === "todo") {
           const { data: settings } = await supabase
             .from("user_settings")
             .select("timezone")
             .eq("user_id", userId)
             .maybeSingle();
+          timeZone = settings?.timezone ?? "UTC";
           const all = must(
             await supabase
               .from("list_items")
@@ -308,7 +310,7 @@ export function registerTools(server: McpServer) {
           );
           await applyPatches(
             supabase,
-            planRollover(all, localDate(new Date(), settings?.timezone ?? "UTC"))
+            planRollover(all, localDate(new Date(), timeZone), timeZone)
           );
         }
 
@@ -319,7 +321,7 @@ export function registerTools(server: McpServer) {
           .order("created_at");
         if (!include_checked) query = query.is("checked_at", null);
         const rows = must(await query).map(({ item_reminders, ...row }) => {
-          const next = nextDue(row);
+          const next = nextDue(row, timeZone);
           return {
             ...row,
             ...(next ? { next_due_on: next } : {}),

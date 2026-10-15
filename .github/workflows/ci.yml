@@ -39,3 +39,4 @@ jobs:
       # Generates the global route types (RouteContext etc.) tsc needs.
       - run: npx next typegen
       - run: npx tsc --noEmit
+      - run: npm test

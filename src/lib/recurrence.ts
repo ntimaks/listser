@@ -121,10 +121,11 @@ export function nextDue(
 //   subtasks uncheck with it;
 // - an unchecked schedule-based task skips any occurrence that has passed.
 // An unchecked completion-based task has no next date until it is done, so it
-// just stays overdue.
+// just stays overdue. `timeZone` places check-offs as in nextDue.
 export function planRollover(
   items: RecurringItem[],
-  today: string
+  today: string,
+  timeZone?: string
 ): ItemPatch[] {
   const updates: ItemPatch[] = [];
   for (const item of items) {
@@ -132,7 +133,7 @@ export function planRollover(
     const step = stepDays(item);
 
     if (item.checked_at) {
-      const next = nextDue(item);
+      const next = nextDue(item, timeZone);
       if (next == null || next > today) continue;
       updates.push({
         id: item.id,
