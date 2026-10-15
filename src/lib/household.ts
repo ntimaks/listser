@@ -41,15 +41,25 @@ export async function fetchLists(
   return (data ?? []) as ListSummary[];
 }
 
-// Empty when the 0012 member function is missing.
+// Empty when the 0012 member function is missing. Avatar colors come from
+// 0018; without it everyone stays on their automatic color.
 export async function fetchMembers(
   supabase: Supabase,
   householdId: string
 ): Promise<Member[]> {
-  const { data } = await supabase.rpc("household_member_list", {
-    p_household_id: householdId,
-  });
-  return (data ?? []) as Member[];
+  const [{ data }, { data: colors }] = await Promise.all([
+    supabase.rpc("household_member_list", { p_household_id: householdId }),
+    supabase.rpc("household_member_colors", { p_household_id: householdId }),
+  ]);
+  const colorOf = new Map(
+    ((colors ?? []) as { user_id: string; avatar_color: string }[]).map(
+      (c) => [c.user_id, c.avatar_color]
+    )
+  );
+  return ((data ?? []) as Member[]).map((m) => ({
+    ...m,
+    avatar_color: colorOf.get(m.user_id) ?? null,
+  }));
 }
 
 // Unchecked top-level items per list, for the list switcher.
