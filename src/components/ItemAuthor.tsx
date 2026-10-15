@@ -19,7 +19,7 @@ export default function ItemAuthor({
 
   if (item.source === "assistant") {
     const label = name ? `Added by AI for ${name}` : "Added by AI";
-    const swatch = member ? memberSwatch(member.user_id) : null;
+    const swatch = member ? memberSwatch(member.user_id, member.avatar_color) : null;
     return (
       <span role="img" aria-label={label} title={label} className="ai-author">
         <svg
@@ -51,7 +51,12 @@ export default function ItemAuthor({
   const label = `Added by ${name}`;
   return (
     <span role="img" aria-label={label} title={label} className="flex shrink-0">
-      <MemberAvatar userId={member.user_id} email={member.email} size={22} />
+      <MemberAvatar
+        userId={member.user_id}
+        email={member.email}
+        color={member.avatar_color}
+        size={22}
+      />
     </span>
   );
 }

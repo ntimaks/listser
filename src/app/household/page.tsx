@@ -27,7 +27,12 @@ export default async function HouseholdPage() {
               key={m.user_id}
               className="flex items-center gap-3 border-b border-[var(--ink-5)] px-3 py-2.5 last:border-b-0"
             >
-              <MemberAvatar userId={m.user_id} email={m.email} size={36} />
+              <MemberAvatar
+                userId={m.user_id}
+                email={m.email}
+                color={m.avatar_color}
+                size={36}
+              />
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="truncate font-bold">
                   {memberName(m.email)}

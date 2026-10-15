@@ -85,6 +85,7 @@ export default function ListHeader({
                   key={m.user_id}
                   userId={m.user_id}
                   email={m.email}
+                  color={m.avatar_color}
                   size={22}
                   className={i > 0 ? "-ml-1" : ""}
                 />

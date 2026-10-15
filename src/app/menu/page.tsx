@@ -27,6 +27,7 @@ export default async function MenuPage() {
     members: true,
   });
   const email = user.email ?? "";
+  const myColor = members.find((m) => m.user_id === user.id)?.avatar_color;
 
   return (
     <PageShell title="Menu" back={back}>
@@ -35,7 +36,12 @@ export default async function MenuPage() {
         prefetch
         className="link-plain panel panel-stamp flex items-center gap-3 p-2.5"
       >
-        <MemberAvatar userId={user.id} email={email} size={44} />
+        <MemberAvatar
+          userId={user.id}
+          email={email}
+          color={myColor}
+          size={44}
+        />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="truncate font-bold uppercase">
             {memberName(email)}
@@ -68,7 +74,12 @@ export default async function MenuPage() {
                   key={m.user_id}
                   className="flex w-14 flex-col items-center gap-1"
                 >
-                  <MemberAvatar userId={m.user_id} email={m.email} size={36} />
+                  <MemberAvatar
+                    userId={m.user_id}
+                    email={m.email}
+                    color={m.avatar_color}
+                    size={36}
+                  />
                   <span className="t-small w-full truncate text-center text-[11px]">
                     {m.user_id === user.id ? "You" : memberName(m.email)}
                   </span>

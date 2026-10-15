@@ -4,15 +4,17 @@ import { memberInitials, memberSwatch } from "@/lib/members";
 export default function MemberAvatar({
   userId,
   email,
+  color,
   size = 28,
   className = "",
 }: {
   userId: string;
   email: string;
+  color?: string | null;
   size?: number;
   className?: string;
 }) {
-  const { bg, fg } = memberSwatch(userId);
+  const { bg, fg } = memberSwatch(userId, color);
   return (
     <span
       aria-hidden

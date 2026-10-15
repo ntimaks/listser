@@ -2,7 +2,12 @@
 // schedule; the app only stores each user's preferences and each task's
 // recipients.
 
-export type Member = { user_id: string; email: string };
+// avatar_color is null until the member picks one (and before 0018).
+export type Member = {
+  user_id: string;
+  email: string;
+  avatar_color?: string | null;
+};
 
 export type ReminderSettings = {
   reminders_enabled: boolean;
