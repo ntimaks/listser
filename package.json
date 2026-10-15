@@ -12,6 +12,7 @@
     "@modelcontextprotocol/server": "^2.1.0",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.1",
+    "@vercel/speed-insights": "^2.0.0",
     "mcp-handler": "^2.2.0",
     "next": "^16.4.0",
     "react": "19.2.7",
