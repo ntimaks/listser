@@ -15,8 +15,8 @@ export type Item = {
   checked_at: string | null;
   checked_by: string | null;
   created_by: string;
-  // 0016: "assistant" when an AI added it for created_by over MCP. Absent on
-  // rows added here (the column defaults to "user") and before 0016.
+  // 0017: "assistant" when an AI added it for created_by over MCP. Absent on
+  // rows added here (the column defaults to "user") and before 0017.
   source?: ItemSource;
   // Optional fields added in 0006. Null on grocery rows; used by wishlist
   // (price/url) and shared by todo+wishlist (notes). `priority` is legacy

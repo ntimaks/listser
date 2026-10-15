@@ -28,7 +28,7 @@ const NO_DUE = {
 // fails, so each step drops the next-newest columns and still shows the items.
 const ITEM_SELECTS: { columns: string; missing: string; fill: Partial<Item> }[] = [
   { columns: `${ITEM_COLUMNS}, ${DUE_COLUMNS}, source`, missing: "", fill: {} },
-  { columns: `${ITEM_COLUMNS}, ${DUE_COLUMNS}`, missing: "0016", fill: {} },
+  { columns: `${ITEM_COLUMNS}, ${DUE_COLUMNS}`, missing: "0017", fill: {} },
   { columns: ITEM_COLUMNS, missing: "0011", fill: NO_DUE },
 ];
 

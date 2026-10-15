@@ -1,4 +1,4 @@
--- Listser 0016: who an item came from.
+-- Listser 0017: who an item came from.
 --
 -- created_by is always a person. source says whether that person added it in
 -- the app ('user') or an assistant added it for them through the MCP server
