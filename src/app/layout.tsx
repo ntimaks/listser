@@ -46,6 +46,11 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "LISTSER",
   },
+  // Next only emits the standard mobile-web-app-capable tag; older iOS
+  // versions need the Apple-prefixed one to launch full-screen.
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {
