@@ -12,8 +12,9 @@ import {
 } from "@/lib/members";
 import { detectTimeZone } from "@/lib/reminders";
 
-// Pick the color behind your initials. Saves on tap; AUTO goes back to the
-// color picked from your user id. Everyone in the household sees the choice.
+// Pick the color behind your initials. Saves on tap. Until you pick one, the
+// color picked from your user id shows as selected. Everyone in the household
+// sees the choice.
 export default function AvatarColorPicker({
   userId,
   email,
@@ -24,10 +25,12 @@ export default function AvatarColorPicker({
   initial: AvatarColor | null;
 }) {
   const router = useRouter();
-  const [color, setColor] = useState<AvatarColor | null>(initial);
+  const [color, setColor] = useState<AvatarColor>(
+    initial ?? autoAvatarColor(userId)
+  );
   const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
 
-  async function choose(next: AvatarColor | null) {
+  async function choose(next: AvatarColor) {
     if (next === color || status === "saving") return;
     const prev = color;
     setColor(next);
@@ -57,13 +60,12 @@ export default function AvatarColorPicker({
     router.refresh();
   }
 
-  const swatchButton = (value: AvatarColor | null) => {
-    const shown = value ?? autoAvatarColor(userId);
+  const swatchButton = (value: AvatarColor) => {
     const selected = color === value;
-    const label = value ? SWATCHES[value].label : "Auto";
+    const label = SWATCHES[value].label;
     return (
       <button
-        key={value ?? "auto"}
+        key={value}
         type="button"
         role="radio"
         aria-checked={selected}
@@ -76,20 +78,11 @@ export default function AvatarColorPicker({
             : "border-transparent"
         }`}
       >
-        {value ? (
-          <span
-            aria-hidden
-            className="block h-7 w-7 border border-[var(--ink-0)]"
-            style={{ background: SWATCHES[shown].bg }}
-          />
-        ) : (
-          <span
-            aria-hidden
-            className="flex h-7 items-center border border-[var(--ink-0)] px-1.5 text-[10px] font-bold tracking-[0.12em]"
-          >
-            AUTO
-          </span>
-        )}
+        <span
+          aria-hidden
+          className="block h-7 w-7 border border-[var(--ink-0)]"
+          style={{ background: SWATCHES[value].bg }}
+        />
       </button>
     );
   };
@@ -99,7 +92,7 @@ export default function AvatarColorPicker({
       <div className="flex items-center gap-3">
         <MemberAvatar userId={userId} email={email} color={color} size={44} />
         <span className="t-small min-w-0 text-[var(--fg-2)]">
-          {color ? SWATCHES[color].label : "Auto"}
+          {SWATCHES[color].label}
           {" // "}shown to your household
         </span>
       </div>
@@ -108,7 +101,6 @@ export default function AvatarColorPicker({
         aria-label="Profile color"
         className="flex flex-wrap gap-1"
       >
-        {swatchButton(null)}
         {AVATAR_COLORS.map(swatchButton)}
       </div>
       {status === "error" && (
