@@ -9,7 +9,7 @@ import Pixl from "@/components/Pixl";
 import { rememberList } from "@/lib/lastList";
 import { useOutboxStatus } from "@/lib/outbox";
 import { memberName } from "@/lib/members";
-import type { Member } from "@/lib/reminders";
+import type { Member } from "@/lib/members";
 import type { ListSummary } from "@/lib/household";
 
 const MAX_AVATARS = 4;

@@ -97,7 +97,6 @@ describe("get_items", () => {
     repeat_every: null,
     repeat_unit: null,
     repeat_from: null,
-    item_reminders: [],
     ...fields,
   });
 
@@ -130,7 +129,6 @@ describe("get_items", () => {
     expect(items.map((i: Row) => i.id)).toEqual(["p", "q"]);
     expect(items[0].subtasks.map((i: Row) => i.id)).toEqual(["s1", "s2"]);
     expect(items[1]).not.toHaveProperty("subtasks");
-    expect(items[0]).not.toHaveProperty("item_reminders");
   });
 
   it("leaves out checked items when asked", async () => {
@@ -192,7 +190,7 @@ describe("get_items", () => {
       expect(updates()).toEqual([]);
     });
 
-    it("adds next_due_on to a checked repeating task, and remind to a dated one", async () => {
+    it("adds next_due_on to a checked repeating task", async () => {
       serve(
         { id: LIST, type: "todo" },
         [
@@ -200,7 +198,6 @@ describe("get_items", () => {
             ...daily,
             due_on: "2026-10-15",
             checked_at: "2026-10-15T21:30:00Z",
-            item_reminders: [{ user_id: "u1" }, { user_id: "u2" }],
           }),
           row("t2"),
         ],
@@ -208,19 +205,15 @@ describe("get_items", () => {
       );
       const { items } = (await call("get_items", { list_id: LIST })).json();
       // 00:30 on the 16th in Riga: next is the 17th (on the 16th in UTC).
-      expect(items[0]).toMatchObject({ next_due_on: "2026-10-17", remind: ["u1", "u2"] });
+      expect(items[0]).toMatchObject({ next_due_on: "2026-10-17" });
       expect(items[1]).not.toHaveProperty("next_due_on");
-      expect(items[1]).not.toHaveProperty("remind");
     });
   });
 });
 
 describe("add_items", () => {
   it("maps repeat onto its columns and marks rows as the assistant's", async () => {
-    respond = (q) =>
-      q.rpc
-        ? { data: (q.args as { p_user_ids: string[] }).p_user_ids }
-        : { data: [{ id: "r1" }, { id: "r2" }] };
+    respond = () => ({ data: [{ id: "r1" }, { id: "r2" }] });
     const res = await call("add_items", {
       list_id: LIST,
       items: [
@@ -228,7 +221,6 @@ describe("add_items", () => {
           name: "Water plants",
           due_on: "2026-10-20",
           repeat: { every: 2, unit: "week" },
-          remind: [ID(5)],
         },
         { name: "Milk" },
       ],
@@ -246,11 +238,8 @@ describe("add_items", () => {
       },
       { name: "Milk", list_id: LIST, created_by: "u1", source: "assistant" },
     ]);
-    // Reminders only for the item that asked, after the insert.
-    expect(sb.queries.slice(1)).toMatchObject([
-      { rpc: "set_item_reminders", args: { p_item_id: "r1", p_user_ids: [ID(5)] } },
-    ]);
-    expect(res.json()).toEqual([{ id: "r1", remind: [ID(5)] }, { id: "r2" }]);
+    expect(sb.queries).toHaveLength(1);
+    expect(res.json()).toEqual([{ id: "r1" }, { id: "r2" }]);
   });
 
   it("rejects bad input before touching the database", async () => {
@@ -268,7 +257,7 @@ describe("add_items", () => {
 describe("update_item", () => {
   const ITEM = ID(2);
   beforeEach(() => {
-    respond = (q) => (q.rpc ? { data: ["u2"] } : { data: { id: ITEM } });
+    respond = () => ({ data: { id: ITEM } });
   });
   const patch = () => argsOf(sb.queries[0], "update")?.[0];
 
@@ -307,16 +296,6 @@ describe("update_item", () => {
   it("leaves the repeat alone when moving the due date", async () => {
     await call("update_item", { item_id: ITEM, due_on: "2026-11-01" });
     expect(patch()).toEqual({ due_on: "2026-11-01" });
-  });
-
-  it("can change only who is reminded", async () => {
-    const res = await call("update_item", { item_id: ITEM, remind: [ID(7)] });
-    expect(methods(sb.queries[0])).not.toContain("update");
-    expect(sb.queries[1]).toMatchObject({
-      rpc: "set_item_reminders",
-      args: { p_item_id: ITEM, p_user_ids: [ID(7)] },
-    });
-    expect(res.json()).toEqual({ id: ITEM, remind: ["u2"] });
   });
 
   it("says when the item isn't there", async () => {

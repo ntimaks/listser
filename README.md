@@ -9,8 +9,8 @@ number of lists of three types:
 
 - **Grocery:** items sort themselves in your store's aisle order, **Done**
   clears the trip, and buy-again chips and templates refill the list.
-- **To-do:** one level of subtasks, due dates, repeats and reminder
-  recipients. Checked tasks stay as a record.
+- **To-do:** one level of subtasks, due dates and repeats. Checked tasks
+  stay as a record.
 - **Wishlist:** price, link, importance and effort per wish.
 
 Every change shows instantly, syncs between phones in realtime, and works
@@ -23,7 +23,7 @@ offline: writes are queued on the device and sent once you're back online.
 1. Create a project at [supabase.com](https://supabase.com).
 2. Open the **SQL Editor** and run every file in
    [`supabase/migrations/`](supabase/migrations/) in filename order
-   (`0001_init.sql` through `0018_avatar_color.sql`; there is no `0016`).
+   (`0001_init.sql` through `0019_drop_reminders.sql`; there is no `0016`).
    This creates the tables, row-level-security policies, RPCs and realtime
    publication the app expects. With the Supabase CLI, `supabase db push`
    does the same.
@@ -134,8 +134,7 @@ verification), `src/app/.well-known/oauth-protected-resource/route.ts`
 **Menu → Integrations → Calendar** gives each user a private iCalendar link
 (`/api/calendar/<token>.ics`) to subscribe to in Google Calendar, Apple
 Calendar or Outlook. It lists the top-level to-dos with a due date in every
-household they belong to (or only the ones that remind them), as all-day
-events.
+household they belong to, as all-day events.
 
 - Repeats counted from the due date become repeating events (`RRULE`).
   Repeats counted from completion can't be expressed in iCalendar, so they
@@ -160,5 +159,4 @@ use **Add to Home Screen** so it launches like a native app.
 
 - Switching between or leaving households in the app (the schema and the
   MCP server already handle several)
-- Sending reminder emails (0012 stores settings and recipients only)
 - Export, stats, a public wishlist link and recipe import

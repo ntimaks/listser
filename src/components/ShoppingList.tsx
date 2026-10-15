@@ -6,7 +6,7 @@ import type { Item } from "@/lib/useListItems";
 import type { ItemStat, BuyAgainItem } from "@/lib/categories";
 import type { ListType } from "@/lib/listTypes";
 import type { ListSummary } from "@/lib/household";
-import type { Member } from "@/lib/reminders";
+import type { Member } from "@/lib/members";
 
 type Props = {
   supabase: SupabaseClient;

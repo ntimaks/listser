@@ -10,7 +10,7 @@ import {
   autoAvatarColor,
   type AvatarColor,
 } from "@/lib/members";
-import { detectTimeZone } from "@/lib/reminders";
+import { detectTimeZone } from "@/lib/timezone";
 
 // Pick the color behind your initials. Saves on tap. Until you pick one, the
 // color picked from your user id shows as selected. Everyone in the household
@@ -41,8 +41,7 @@ export default function AvatarColorPicker({
       .update({ avatar_color: next })
       .eq("user_id", userId)
       .select("user_id");
-    // No settings row yet: create one, with the browser's timezone so the
-    // reminder defaults stay right.
+    // No settings row yet: create one, with the browser's timezone.
     const { error: insertError } =
       !error && data?.length === 0
         ? await supabase.from("user_settings").insert({
