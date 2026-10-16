@@ -24,7 +24,7 @@ import {
   type BuyAgainItem,
 } from "@/lib/categories";
 import { COPY } from "@/lib/listTypes";
-import type { Member } from "@/lib/reminders";
+import type { Member } from "@/lib/members";
 import { useStuck } from "@/lib/useStuck";
 
 type TemplateItem = { item_name: string; sort_order: number };

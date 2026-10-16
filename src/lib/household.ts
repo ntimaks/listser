@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthUser } from "@/lib/supabase/auth";
 import { LAST_LIST_COOKIE, listHref } from "@/lib/lastList";
 import type { ListType } from "@/lib/listTypes";
-import type { Member } from "@/lib/reminders";
+import type { Member } from "@/lib/members";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 

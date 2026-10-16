@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import AvatarColorPicker from "@/components/AvatarColorPicker";
 import PageShell, { PageSection, SoonTag } from "@/components/PageShell";
-import ReminderSettingsForm from "@/components/ReminderSettingsForm";
 import ThemeToggle from "@/components/ThemeToggle";
 import { loadNavContext } from "@/lib/household";
 import { isAvatarColor } from "@/lib/members";
@@ -39,10 +38,6 @@ export default async function SettingsPage() {
           email={user.email ?? ""}
           initial={avatarColor}
         />
-      </PageSection>
-
-      <PageSection title="Reminders" code="[REM]">
-        <ReminderSettingsForm userId={user.id} />
       </PageSection>
 
       <PageSection title="Appearance" code="[LOOK]">

@@ -15,7 +15,7 @@ type Section = { href?: string; label: string; desc: string };
 // Where the menu leads. Rows without an href are planned, shown as SOON.
 const SECTIONS: Section[] = [
   { href: "/household", label: "HOUSEHOLD", desc: "Members and invite link" },
-  { href: "/settings", label: "SETTINGS", desc: "Reminders and appearance" },
+  { href: "/settings", label: "SETTINGS", desc: "Profile and appearance" },
   { href: "/integrations", label: "INTEGRATIONS", desc: "Connect Claude" },
   { label: "STATS", desc: "Trips, top items, who did what" },
   { label: "HELP & FEEDBACK", desc: "Tips, report a bug" },
