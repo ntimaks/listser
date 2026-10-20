@@ -11,7 +11,8 @@ import { listHref } from "@/lib/lastList";
 import { useListStore } from "@/lib/useListStore";
 import type { ListData } from "@/lib/listData";
 import type { ListSummary } from "@/lib/household";
-import { detectTimeZone, type Member } from "@/lib/reminders";
+import type { Member } from "@/lib/members";
+import { detectTimeZone } from "@/lib/timezone";
 
 type Props = {
   lists: ListSummary[];
@@ -64,9 +65,9 @@ export default function ListApp({
     if (navigator.onLine && Date.now() - renderedAt > 60_000) router.refresh();
   }, [router, renderedAt]);
 
-  // Give every user a settings row with their browser's timezone, so reminders
-  // go out at the right local time even if they never open the settings.
-  // Leaves an existing row alone.
+  // Give every user a settings row with their browser's timezone, so the
+  // calendar feed and the MCP tools know their "today". Leaves an existing row
+  // alone.
   useEffect(() => {
     supabase
       .from("user_settings")

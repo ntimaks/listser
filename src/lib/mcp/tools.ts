@@ -90,23 +90,15 @@ const itemFields = {
     .nullable()
     .optional()
     .describe("Make a todo repeat (needs due_on). When checked off it comes back on its next date."),
-  remind: z
-    .array(uuid)
-    .max(50)
-    .optional()
-    .describe(
-      "User ids to email on the due date (members from list_households); [] for nobody. A task that first gets a due_on defaults to the whole household."
-    ),
 };
 
-type ItemFields = { due_on?: string | null; repeat?: RepeatInput | null; remind?: string[] };
+type ItemFields = { due_on?: string | null; repeat?: RepeatInput | null };
 type RepeatInput = { every: number; unit: "day" | "week"; from: "schedule" | "completion" };
 
-// Map item fields onto columns: `remind` isn't a column (see setRemind), and
-// the `repeat` object spreads into its three. A cleared due date takes the
-// repeat with it, since a repeat counts from the due date.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- dropping remind
-function itemColumns<T extends ItemFields>({ repeat, remind, ...rest }: T) {
+// Map item fields onto columns: the `repeat` object spreads into its three. A
+// cleared due date takes the repeat with it, since a repeat counts from the
+// due date.
+function itemColumns<T extends ItemFields>({ repeat, ...rest }: T) {
   if (repeat === undefined && rest.due_on !== null) return rest;
   return {
     ...rest,
@@ -114,14 +106,6 @@ function itemColumns<T extends ItemFields>({ repeat, remind, ...rest }: T) {
     repeat_unit: repeat?.unit ?? null,
     repeat_from: repeat?.from ?? null,
   };
-}
-
-// Replace a task's reminder recipients. Runs after the item write, since a
-// task's first due date defaults them to the whole household.
-async function setRemind(supabase: TokenClient, itemId: string, userIds: string[]) {
-  return must(
-    await supabase.rpc("set_item_reminders", { p_item_id: itemId, p_user_ids: userIds })
-  ) as string[];
 }
 
 // Apply planRollover's writes (rows sharing a patch go out together).
@@ -139,7 +123,7 @@ async function applyPatches(supabase: TokenClient, updates: ItemPatch[]) {
 const INSTRUCTIONS = `Listser is a shared household list app. A user belongs to one or more households; each household has lists of type "grocery", "todo" or "wishlist".
 - Start with list_households / list_lists to find ids. list_households also lists each household's members.
 - Grocery: check items off while shopping, then call finish_trip to clear checked items and teach the app the store's aisle order. buy_again suggests frequently bought items.
-- Todo: items can have one level of subtasks (parent_item_id). Checked tasks stay as a record. Top-level tasks can have a due_on date and a repeat; a checked repeating task comes back unchecked on its next_due_on. remind lists the members emailed on the due date.
+- Todo: items can have one level of subtasks (parent_item_id). Checked tasks stay as a record. Top-level tasks can have a due_on date and a repeat; a checked repeating task comes back unchecked on its next_due_on.
 - Wishlist: price_cents, url, importance and effort (cost) describe wishes.
 - Templates are reusable grocery item sets per household.`;
 
@@ -273,7 +257,7 @@ export function registerTools(server: McpServer) {
     {
       title: "Get items",
       description:
-        "Get a list and its items. Subtasks are nested under their parent item. Checked items have a non-null checked_at; a checked repeating task also has next_due_on, the date it comes back. Dated tasks list who they remind in `remind`.",
+        "Get a list and its items. Subtasks are nested under their parent item. Checked items have a non-null checked_at; a checked repeating task also has next_due_on, the date it comes back.",
       inputSchema: z.object({
         list_id: uuid,
         include_checked: z.boolean().default(true),
@@ -292,14 +276,16 @@ export function registerTools(server: McpServer) {
         );
 
         // Bring repeating tasks up to date first, as the app does on open, on
-        // the caller's own date (their settings timezone; UTC until they have
-        // one).
+        // the caller's own calendar (their settings timezone; UTC until they
+        // have one).
+        let timeZone = "UTC";
         if (list.type === "todo") {
           const { data: settings } = await supabase
             .from("user_settings")
             .select("timezone")
             .eq("user_id", userId)
             .maybeSingle();
+          timeZone = settings?.timezone ?? "UTC";
           const all = must(
             await supabase
               .from("list_items")
@@ -308,23 +294,19 @@ export function registerTools(server: McpServer) {
           );
           await applyPatches(
             supabase,
-            planRollover(all, localDate(new Date(), settings?.timezone ?? "UTC"))
+            planRollover(all, localDate(new Date(), timeZone), timeZone)
           );
         }
 
         let query = supabase
           .from("list_items")
-          .select(`${ITEM_COLUMNS}, item_reminders(user_id)`)
+          .select(ITEM_COLUMNS)
           .eq("list_id", list_id)
           .order("created_at");
         if (!include_checked) query = query.is("checked_at", null);
-        const rows = must(await query).map(({ item_reminders, ...row }) => {
-          const next = nextDue(row);
-          return {
-            ...row,
-            ...(next ? { next_due_on: next } : {}),
-            ...(row.due_on ? { remind: item_reminders.map((r) => r.user_id) } : {}),
-          };
+        const rows = must(await query).map((row) => {
+          const next = nextDue(row, timeZone);
+          return next ? { ...row, next_due_on: next } : row;
         });
 
         const byParent = new Map<string, typeof rows>();
@@ -364,7 +346,7 @@ export function registerTools(server: McpServer) {
     },
     ({ list_id, items }, ctx) =>
       run(ctx, async ({ supabase, userId }) => {
-        const rows = must(
+        return must(
           await supabase
             .from("list_items")
             .insert(
@@ -376,13 +358,6 @@ export function registerTools(server: McpServer) {
               }))
             )
             .select(ITEM_COLUMNS)
-        );
-        // Rows come back in insert order, so pair each with its input.
-        return Promise.all(
-          rows.map(async (row, i) => {
-            const remind = items[i].remind;
-            return remind ? { ...row, remind: await setRemind(supabase, row.id, remind) } : row;
-          })
         );
       })
   );
@@ -405,18 +380,16 @@ export function registerTools(server: McpServer) {
         const fields = Object.fromEntries(
           Object.entries(itemColumns(patch)).filter(([, value]) => value !== undefined)
         );
-        if (Object.keys(fields).length === 0 && !patch.remind) throw new Error("nothing to update");
-        const table = supabase.from("list_items");
-        const row = must(
-          await (Object.keys(fields).length > 0 ? table.update(fields) : table)
+        if (Object.keys(fields).length === 0) throw new Error("nothing to update");
+        return must(
+          await supabase
+            .from("list_items")
+            .update(fields)
             .select(ITEM_COLUMNS)
             .eq("id", item_id)
             .maybeSingle(),
           "item not found"
         );
-        return patch.remind
-          ? { ...row, remind: await setRemind(supabase, item_id, patch.remind) }
-          : row;
       })
   );
 

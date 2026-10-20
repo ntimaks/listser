@@ -1,22 +1,32 @@
 # Listser
 
-One shared shopping list for your household. Mobile-first PWA built with
-Next.js (App Router) and Supabase (auth, Postgres + RLS, realtime).
+Shared lists for your household: groceries, to-dos and wishlists. Mobile-first
+PWA built with Next.js (App Router) and Supabase (auth, Postgres + RLS,
+realtime).
 
-**v1 scope:** magic-link sign-in, one household joined via invite link, one
-shared "Groceries" list with optimistic add/check/uncheck that syncs in
-realtime between phones.
+**What it does:** Google sign-in, a household joined via invite link, and any
+number of lists of three types:
+
+- **Grocery:** items sort themselves in your store's aisle order, **Done**
+  clears the trip, and buy-again chips and templates refill the list.
+- **To-do:** one level of subtasks, due dates and repeats. Checked tasks
+  stay as a record.
+- **Wishlist:** price, link, importance and effort per wish.
+
+Every change shows instantly, syncs between phones in realtime, and works
+offline: writes are queued on the device and sent once you're back online.
 
 ## Setup
 
 ### 1. Create a Supabase project
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. Open the **SQL Editor** and run the files in
-   [`supabase/migrations/`](supabase/migrations/) in order
-   (`0001_init.sql`, then `0002_aisle_order.sql`). This creates the tables,
-   row-level-security policies, the `create_household` / `join_household` /
-   `record_trip` RPCs, and enables realtime on `list_items`.
+2. Open the **SQL Editor** and run every file in
+   [`supabase/migrations/`](supabase/migrations/) in filename order
+   (`0001_init.sql` through `0019_drop_reminders.sql`; there is no `0016`).
+   This creates the tables, row-level-security policies, RPCs and realtime
+   publication the app expects. With the Supabase CLI, `supabase db push`
+   does the same.
 
 ### 2. Configure auth
 
@@ -24,7 +34,9 @@ realtime between phones.
    deployed URL (or `http://localhost:3000` while developing) and add
    `http://localhost:3000/auth/callback` (and your production
    `/auth/callback`) to **Redirect URLs**.
-2. Magic-link email is on by default — nothing else to enable.
+2. In **Authentication → Providers**, enable **Google** and fill in the
+   client ID and secret from a Google Cloud OAuth client. Sign-in is
+   Google-only.
 
 ### 3. Run the app
 
@@ -34,31 +46,42 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000, sign in with your email, create a household,
-then tap **Invite** and send the link to the other person — opening it signs
-them up and drops them straight into the shared list.
+Open http://localhost:3000, sign in with Google, create a household, then
+open **Menu → Household** and send the invite link to the other person.
+Opening it signs them in and drops them straight into the shared lists.
 
 ## How it works
 
-- `supabase/migrations/0001_init.sql` — schema: `households` →
-  `household_members` → `lists` → `list_items`. All access is enforced by
-  RLS (`is_household_member`). Creating/joining households goes through
-  `security definer` RPCs so membership rows stay consistent.
-- `src/proxy.ts` — refreshes the Supabase session cookie and redirects
+- **Schema:** `households` → `household_members` → `lists` (typed
+  `grocery` / `todo` / `wishlist`) → `list_items`. All access is enforced by
+  RLS (`is_household_member`). Creating, joining and renaming households goes
+  through `security definer` RPCs so membership rows stay consistent. Each
+  migration starts with a comment explaining what it adds.
+- `src/proxy.ts` refreshes the Supabase session cookie and redirects
   signed-out visitors to `/login` (preserving `?next=` so invite links
   survive the auth round-trip).
-- `src/components/ShoppingList.tsx` — the whole UX. Adds and checkoffs are
-  optimistic (instant local state), then reconciled against Supabase
-  realtime events, so the list feels instant and the other phone updates
-  within a second.
-- **Aisle-order sorting** — the list groups itself by grocery category in a
+- `src/components/ListApp.tsx` hosts the list switcher
+  (`ListSwitcher.tsx`) and renders `GroceryList.tsx` or `SimpleList.tsx`
+  (to-dos and wishlists) for the active list. Switching lists happens in the
+  browser, without a page load.
+- **Offline and sync:** every item change goes through the write queue in
+  `src/lib/outbox.ts`. It's applied to the screen at once, saved to
+  IndexedDB (`src/lib/idb.ts`), and sent to Supabase in order, retrying while
+  offline, even across app restarts. `src/lib/useListStore.ts` keeps the last
+  copy of the lists on the device and reconciles with realtime events.
+  `public/sw.js` caches the app shell so it opens with no connection.
+- **Aisle-order sorting:** grocery lists group themselves by category in a
   canonical "store walk" order from day one (`src/lib/categories.ts`, a
-  merged English + Latvian stem dictionary — no language setting needed).
-  Tapping **Done** after a trip calls the `record_trip` RPC
-  (`0002_aisle_order.sql`), which folds the checkoff order into
-  per-household `item_stats`; learned positions gradually override the
-  built-in order, so after a few trips the list mirrors your actual store.
-  Zero configuration.
+  merged English + Latvian stem dictionary, no language setting needed).
+  Tapping **Done** calls the `record_trip` RPC, which logs the purchases to
+  `item_purchases` and folds the checkoff order into per-list `item_stats`.
+  Learned positions gradually override the built-in order, so each store
+  list learns its own layout.
+- **Buy again and templates:** the `buy_again` RPC ranks a list's purchase
+  history into suggestion chips. Templates are reusable item sets per
+  household ("taco night" → many items).
+- **Due dates and repeats:** see `src/lib/recurrence.ts`. A checked
+  repeating task comes back unchecked on its next due date.
 
 ## MCP server
 
@@ -111,8 +134,7 @@ verification), `src/app/.well-known/oauth-protected-resource/route.ts`
 **Menu → Integrations → Calendar** gives each user a private iCalendar link
 (`/api/calendar/<token>.ics`) to subscribe to in Google Calendar, Apple
 Calendar or Outlook. It lists the top-level to-dos with a due date in every
-household they belong to (or only the ones that remind them), as all-day
-events.
+household they belong to, as all-day events.
 
 - Repeats counted from the due date become repeating events (`RRULE`).
   Repeats counted from completion can't be expressed in iCalendar, so they
@@ -133,9 +155,8 @@ Deploy to Vercel, set the two env vars from `.env.example`, and update the
 Supabase Site URL / Redirect URLs to the production domain. On your phones,
 use **Add to Home Screen** so it launches like a native app.
 
-## v1 backlog (deliberately cut)
+## Not built yet
 
-- Multiple households / lists UI (schema already supports it)
-- Sets ("taco night" → many items)
-- Frequency-based suggestions ("you usually buy milk weekly")
-- Offline mutation queue (currently online-optimistic only)
+- Switching between or leaving households in the app (the schema and the
+  MCP server already handle several)
+- Export, stats, a public wishlist link and recipe import

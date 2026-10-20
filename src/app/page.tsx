@@ -71,7 +71,7 @@ export default async function Home({
 
   const [lists, members] = await Promise.all([
     fetchLists(supabase, household.id),
-    // Household members: avatars in the header, and who a to-do reminds.
+    // Household members: avatars in the header and on items.
     fetchMembers(supabase, household.id),
   ]);
   // Without a valid ?list=, reopen the list you were last on, else the first.

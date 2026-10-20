@@ -17,12 +17,11 @@ import ItemDetailSheet from "@/components/ItemDetailSheet";
 import Hint from "@/components/Hint";
 import Pixl from "@/components/Pixl";
 import { useListItems, type Item } from "@/lib/useListItems";
-import { enqueue } from "@/lib/outbox";
 import { COPY, attrLabels, quickWinSort, type ListType } from "@/lib/listTypes";
 import { isRecurring, nextDue, planRollover } from "@/lib/recurrence";
 import { useLocalToday } from "@/lib/useLocalToday";
 import { useStuck } from "@/lib/useStuck";
-import type { Member } from "@/lib/reminders";
+import type { Member } from "@/lib/members";
 
 type ListSummary = {
   id: string;
@@ -143,20 +142,6 @@ export default function SimpleList({
   // "Quick wins": high-importance, low-effort items float to the top (for both
   // to-do and wishlist). Unrated items sink to the bottom.
   const activeItems = useMemo(() => quickWinSort(unchecked), [unchecked]);
-
-  // Save from the detail sheet. Recipients go after the item: giving a task
-  // its first due date makes the database remind the whole household, and the
-  // sheet's picks then replace that default.
-  function saveItem(id: string, patch: Partial<Item>, remind?: string[]) {
-    updateItem(id, patch);
-    if (remind) {
-      enqueue({
-        kind: "rpc",
-        fn: "set_item_reminders",
-        args: { p_item_id: id, p_user_ids: remind },
-      });
-    }
-  }
 
   // Keep the open detail sheet bound to the latest item state.
   const editingItem = editing
@@ -301,11 +286,9 @@ export default function SimpleList({
           lists={lists}
           currentListId={listId}
           onClose={() => setEditing(null)}
-          onSave={saveItem}
+          onSave={updateItem}
           onDelete={deleteItem}
           onMove={moveItem}
-          members={members}
-          userId={userId}
         />
       )}
     </main>

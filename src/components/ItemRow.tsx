@@ -10,7 +10,7 @@ import {
   levelColor,
 } from "@/lib/listTypes";
 import { dueLabel, nextDue, repeatLabel, shortDate } from "@/lib/recurrence";
-import type { Member } from "@/lib/reminders";
+import type { Member } from "@/lib/members";
 import CheckMark from "./CheckMark";
 import ItemAuthor from "./ItemAuthor";
 

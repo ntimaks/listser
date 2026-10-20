@@ -3,12 +3,10 @@
 import { useEffect, useState } from "react";
 import CopyField from "@/components/CopyField";
 import Hint from "@/components/Hint";
-import Segmented from "@/components/Segmented";
 import { Bone } from "@/components/Skeleton";
 import { createClient } from "@/lib/supabase/client";
 
-type Scope = "all" | "mine";
-type Feed = { token: string; scope: Scope; last_fetched_at: string | null };
+type Feed = { token: string; last_fetched_at: string | null };
 
 // The signed-in user's private calendar feed (0014). Off until they turn it
 // on; the link can be reset (old one stops working) or the feed turned off.
@@ -29,7 +27,7 @@ export default function CalendarFeedForm({
     let cancelled = false;
     createClient()
       .from("calendar_feeds")
-      .select("token, scope, last_fetched_at")
+      .select("token, last_fetched_at")
       .eq("user_id", userId)
       .maybeSingle()
       .then(({ data }) => {
@@ -52,22 +50,8 @@ export default function CalendarFeedForm({
     run(async () => {
       const { data, error } = await createClient().rpc("reset_calendar_feed");
       if (error || !data) return false;
-      setFeed((f) => ({
-        token: data as string,
-        scope: f?.scope ?? "all",
-        last_fetched_at: null,
-      }));
+      setFeed({ token: data as string, last_fetched_at: null });
       setConfirmReset(false);
-      return true;
-    });
-
-  const setScope = (scope: Scope) =>
-    run(async () => {
-      const { error } = await createClient().rpc("set_calendar_feed_scope", {
-        p_scope: scope,
-      });
-      if (error) return false;
-      setFeed((f) => f && { ...f, scope });
       return true;
     });
 
@@ -126,16 +110,6 @@ export default function CalendarFeedForm({
       <a href={webcalUrl} className="btn btn-cobalt w-full text-center">
         Subscribe
       </a>
-
-      <Segmented
-        label="Show"
-        value={feed.scope}
-        options={[
-          { value: "all", label: "All tasks" },
-          { value: "mine", label: "Reminding me" },
-        ]}
-        onChange={setScope}
-      />
 
       <Hint motion="idle" className="px-0">
         {feed.last_fetched_at

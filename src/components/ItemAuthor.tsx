@@ -1,6 +1,6 @@
 import MemberAvatar from "./MemberAvatar";
 import { memberInitials, memberName, memberSwatch } from "@/lib/members";
-import type { Member } from "@/lib/reminders";
+import type { Member } from "@/lib/members";
 import type { Item } from "@/lib/useListItems";
 
 // Who added an item, as a square at the end of its row. A person shows as

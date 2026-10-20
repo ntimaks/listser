@@ -201,27 +201,3 @@ export function PageSkeleton({
     </main>
   );
 }
-
-// ReminderSettingsForm while it fetches the saved settings: the real labels,
-// with placeholders for the controls.
-export function ReminderFormSkeleton() {
-  return (
-    <div aria-busy="true" className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1">
-        <span className="t-meta">Email reminders</span>
-        <div className="flex gap-1">
-          <Bone className="h-8 flex-1" />
-          <Bone className="h-8 flex-1" />
-        </div>
-      </div>
-      {["Send time", "Timezone"].map((label) => (
-        <div key={label} className="flex flex-col gap-1">
-          <span className="t-meta">{label}</span>
-          <Bone className="h-11 w-full" />
-        </div>
-      ))}
-      <Bone className="h-3 w-4/5 skel-dim" />
-      <Bone className="h-11 w-full" />
-    </div>
-  );
-}

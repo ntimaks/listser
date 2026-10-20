@@ -47,3 +47,11 @@ export function memberInitials(email: string): string {
     parts.length > 1 ? parts[0][0] + parts[1][0] : (parts[0] ?? "?").slice(0, 2);
   return letters.toUpperCase();
 }
+
+// A household member as household_member_list returns them. avatar_color is
+// null until the member picks one (and before 0018).
+export type Member = {
+  user_id: string;
+  email: string;
+  avatar_color?: string | null;
+};
