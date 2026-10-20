@@ -9,6 +9,7 @@ import "./globals.css";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import AnimatedFavicon from "@/components/AnimatedFavicon";
 import ServiceWorker from "@/components/ServiceWorker";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 // Mono is the default body face — the whole system reads like a logbook.
 const mono = JetBrains_Mono({
@@ -83,6 +84,7 @@ export default function RootLayout({
         {children}
         <ServiceWorker />
         <AnimatedFavicon />
+        <SpeedInsights />
       </body>
     </html>
   );
